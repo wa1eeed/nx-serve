@@ -7,3 +7,4 @@ export * from './ids/uuidv7.js';
 export * from './fields/validate.js';
 export * from './entitlements/resolve.js';
 export * from './settings/resolve.js';
+export * from './forms/form-schema.js';
