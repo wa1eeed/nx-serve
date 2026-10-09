@@ -1,0 +1,39 @@
+# Multi-stage image for a Node service (api, worker, realtime).
+# Build, from the repo root:
+#   docker build -f infra/docker/Dockerfile.node \
+#     --build-arg SCOPE=@nxserve/api --build-arg APP=api -t nxserve-api .
+# turbo prune produces a minimal workspace so each image only contains what the
+# scope needs. Runs as the non-root `node` user.
+
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-alpine AS base
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS pruner
+ARG SCOPE
+COPY . .
+RUN pnpm dlx turbo@2.3.3 prune "$SCOPE" --docker
+
+FROM base AS installer
+ARG SCOPE
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+COPY --from=pruner /app/out/full/ .
+RUN pnpm exec turbo build --filter="$SCOPE"
+
+FROM base AS runner
+ARG APP
+ENV NODE_ENV=production
+ENV API_PORT=3001
+COPY --from=installer /app/ .
+USER node
+EXPOSE 3001
+# HTTP services (api, realtime) expose a health route; disable for the worker in
+# the orchestrator (compose: healthcheck disable, or Coolify none).
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD \
+  node -e "fetch('http://127.0.0.1:'+(process.env.API_PORT||3001)+'/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["sh", "-c", "node apps/${APP}/dist/main.js"]

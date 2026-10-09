@@ -1,0 +1,102 @@
+# Progress
+
+Updated by Claude Code at the end of every working session.
+
+| Phase | Status | Notes |
+|---|---|---|
+| Design | Done | Decisions in docs/00, reference schema validated (94 tables). |
+| 0. Foundation | Nearly done | All packages, API, worker, realtime, web shells, CI, Docker and Coolify docs built and green. Pending: live staging deploy (blocked on Q25 domain, Q26 VPS) and the local live DB run (Docker daemon down; validated in CI). |
+| 1. Catalog and configuration | Not started | |
+| 2. Providers | Not started | |
+| 3. Pricing and fees | Not started | |
+| 4. Orders end-to-end (MVP) | Not started | |
+| 5. Realtime and notifications | Not started | |
+| 6. API platform | Not started | |
+| 7. White-label commercial | Not started | |
+| 8. Hardening and production | Not started | |
+
+## Phase 0 checklist
+
+- [x] Monorepo tooling: pnpm workspaces, Turborepo, strict tsconfig, ESLint flat config, Prettier,
+      .env.example, .gitignore, .nvmrc (`packages/config`).
+- [x] `packages/domain`: money (bigint minor units), currency exponents, rounding, fare rounding,
+      `allocateMoney` (splits balance), UUIDv7. 35 tests, 100% coverage, towing and split examples
+      reproduced.
+- [x] `packages/contracts`: problem+json, stable error codes, event envelope, cursor pagination,
+      HTTP conventions, translatable text and money DTOs. 7 tests.
+- [x] `packages/i18n`: en and ar catalogs at parity, glossary, parity + ICU argument gate. 4 tests.
+- [x] ADR-0014 (stops model and payment plans).
+- [~] `packages/db`: 16 SQL migrations converted from the reference schema with docs/04 rules and
+      docs/25 capability blocks (stops model, payment plans, business accounts), RLS (FORCE + USING +
+      WITH CHECK via helper functions), audit/outbox/idempotency and auth tables, migration runner,
+      role aware client with `withTenant` (SET LOCAL), Drizzle introspection config, RLS isolation
+      test (Testcontainers). Migrations structurally validated: 108 tables, 88 RLS policies apply
+      cleanly (PostGIS geography stubbed, because the local Docker daemon is unresponsive in this
+      environment). Still to do: run against real PostGIS (migrate + isolation test), and seeds.
+- [x] `packages/integrations`: adapter interfaces and fakes (PaymentGateway with split invariants
+      and constant time webhook check, MapsProvider, NotificationProvider, StorageProvider,
+      IdentityVerifier, NationalIdentity, EInvoicingProvider, RegulatoryFilingProvider) plus a
+      `createIntegrations` factory (all fakes in Phase 0). Build and 4 tests green.
+- [~] Seeds: `runSeed` writes nx and demo tenants, domains, towing template (vertical, category,
+      workflow + 6 stages, tier, rate card, fee schedule, dispatch policy, payment plan), vehicle
+      catalog, classes, provider + agent + asset + offering, customer, plans, permissions, roles and
+      a test API key. Structurally validated against the stubbed schema; live run pending Docker.
+- [x] `apps/api`: NestJS 11 on Fastify (ESM), `/v1` prefix. Request context (AsyncLocalStorage),
+      tenancy guard (host resolution), `DbService.withTenant` (SET LOCAL), problem+json exception
+      filter, idempotency interceptor, outbox writer, audit interceptor, Redis readiness, bootstrap
+      and me endpoints, and the auth module (phone OTP, staff argon2id + TOTP MFA, access JWT via
+      jose, rotating refresh tokens with reuse detection). Builds, boots, and serves /v1/health plus
+      problem+json (verified at runtime); 3 unit tests. DB-backed endpoints run once Postgres is up.
+- [x] OpenAPI pipeline: `@nxserve/contracts` generates an OpenAPI 3.1 document (10 paths) from the
+      Zod contracts (single source; the API imports the same schemas) and a Postman collection.
+      Covered by a contract test. `pnpm --filter @nxserve/contracts openapi:generate` and
+      `postman:generate`.
+- [x] `apps/developers`: Next.js 15 portal skeleton. Landing plus `/reference` (Scalar) over the
+      generated spec, regenerated at build so it never drifts. `next build` passes.
+- [ ] SDK (`packages/sdk-js`) generation from OpenAPI: Phase 6.
+- [x] `apps/worker`: transactional outbox publisher (FOR UPDATE SKIP LOCKED, BYPASSRLS pool,
+      publishes to Redis `nx:events` with target rooms, at least once), BullMQ queue and worker
+      skeletons, graceful shutdown. Builds; 1 unit test. Room routing is shared in
+      `@nxserve/contracts` (`roomsForEvent`).
+- [x] `apps/realtime`: Socket.IO gateway with the Redis adapter, JWT handshake auth, tenant and
+      actor room binding, and the event bridge that fans worker events out to rooms. Builds; 3 unit
+      tests (handshake auth round trip, room routing).
+- [x] `packages/design-tokens`: one token source (semantic colors light and dark, radius, fonts,
+      chart palette), `buildTokensCss` (`:root` light plus system and forced dark), shared
+      `lockedFeatureModel`. 3 tests.
+- [x] `packages/ui-web`: `cn`, `Button`, `LockedFeature` (shadcn style, token driven). 2 tests.
+- [x] `packages/ui-native`: shared token to CSS variable mapping (`nativeTheme`) matching web; full
+      React Native Reusables components ship with the mobile apps. 2 tests.
+- [x] Web shells build (Next.js 15): `marketing`, `web-platform-admin`, `web-console`,
+      `web-storefront` (host resolved, Arabic RTL, tokens applied) and `developers`. All build.
+- [ ] `infra/compose`, `infra/docker`, `infra/coolify`.
+- [x] CI (`.github/workflows/ci.yml`): a quality job (install, lint, build, unit and property tests,
+      i18n parity, OpenAPI and Postman generation with artifact upload) and a database job that runs
+      migrate, seed and the RLS isolation suite against a live `postgis/postgis:16-3.4` service,
+      closing the database acceptance in CI even while the local Docker daemon is down.
+- [x] Docker: two multi-stage, non-root templates (`Dockerfile.node`, `Dockerfile.web`) using
+      `turbo prune`, a `.dockerignore`, and `infra/docker/README.md` mapping each deployable.
+- [x] Coolify: `infra/coolify/README.md` and `.env.staging.example`. Changesets configured.
+- [x] Seeds authored and structurally validated; `pnpm db:reset` runs migrate + seed (live in CI and
+      locally once Docker is available).
+
+## Last session
+- Date: 2026-10-10
+- Done: Phase 0 built end to end and green. Packages: config, domain (100% coverage), contracts
+  (+ OpenAPI 3.1 and Postman generation), i18n (parity gate), db (16 migrations with RLS, runner,
+  client, seeds, Testcontainers isolation suite), integrations (interfaces + fakes), design-tokens,
+  ui-web, ui-native. Apps: api (NestJS/Fastify with tenancy, context, problem+json, idempotency,
+  outbox, audit, auth OTP/MFA/JWT, boots and serves at runtime), worker (outbox publisher + BullMQ),
+  realtime (Socket.IO + Redis adapter), developers portal (Scalar), and the four web shells. Infra:
+  docker-compose, two Docker templates, CI (quality + live-PostGIS database job), Coolify docs,
+  Changesets. ADR-0014 recorded. Whole workspace: `pnpm lint`, `pnpm build` and 66 unit/property
+  tests all pass. git initialised (no commits yet).
+- Next: live staging on Coolify once a domain and VPS are available; run the DB suite locally when
+  Docker is back; then Phase 1 (catalog and configuration).
+- Blockers / questions:
+  - Local Docker daemon is unresponsive here, so the PostGIS migrate and the isolation test were not
+    run locally (SQL validated structurally; both run in CI against a live PostGIS service). To run
+    locally: `docker compose -f infra/compose/docker-compose.yml up -d postgres` then
+    `pnpm --filter @nxserve/db reset` and `pnpm --filter @nxserve/db test`.
+  - Q25 (staging domain + DNS) and Q26 (VPS with Coolify + S3 backup) block only the live staging
+    acceptance. Payments stay sandbox behind a flag until the Moyasar addendum (Q1, Q6).

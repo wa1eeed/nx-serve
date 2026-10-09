@@ -1,0 +1,9 @@
+{
+  "//": "Root tsconfig for editor tooling only. Each package extends packages/config/tsconfig/*.",
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/contracts" },
+    { "path": "packages/i18n" }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@nxserve/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "openapi:generate": "tsx scripts/generate-openapi.ts",
+    "postman:generate": "tsx scripts/generate-postman.ts"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@nxserve/config": "workspace:*",
+    "@types/node": "22.10.2",
+    "eslint": "9.17.0",
+    "openapi-to-postmanv2": "^4.25.0",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "nxserve",
+  "version": "0.0.0",
+  "private": true,
+  "description": "NX Serve: configurable multi-tenant white-label platform for field services",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "db:migrate": "pnpm --filter @nxserve/db migrate",
+    "db:seed": "pnpm --filter @nxserve/db seed",
+    "db:reset": "pnpm --filter @nxserve/db reset",
+    "openapi:generate": "pnpm --filter @nxserve/contracts openapi:generate",
+    "postman:generate": "pnpm --filter @nxserve/contracts postman:generate",
+    "i18n:check": "pnpm --filter @nxserve/i18n check",
+    "changeset": "changeset",
+    "version": "changeset version"
+  },
+  "devDependencies": {
+    "@changesets/cli": "2.27.11",
+    "prettier": "3.4.2",
+    "turbo": "2.3.3",
+    "typescript": "5.7.2"
+  }
+}

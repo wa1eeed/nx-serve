@@ -1,0 +1,16 @@
+node_modules/
+.turbo/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+packages/contracts/openapi/
+apps/developers/public/openapi.json
+.expo/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+reference/private/

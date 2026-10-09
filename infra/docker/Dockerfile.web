@@ -1,0 +1,38 @@
+# Multi-stage image for a Next.js app (marketing, web-platform-admin,
+# web-console, web-storefront, developers) using Next standalone output.
+# Build, from the repo root:
+#   docker build -f infra/docker/Dockerfile.web \
+#     --build-arg SCOPE=@nxserve/web-storefront --build-arg APP=web-storefront \
+#     -t nxserve-web-storefront .
+
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-alpine AS base
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS pruner
+ARG SCOPE
+COPY . .
+RUN pnpm dlx turbo@2.3.3 prune "$SCOPE" --docker
+
+FROM base AS installer
+ARG SCOPE
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+COPY --from=pruner /app/out/full/ .
+RUN pnpm exec turbo build --filter="$SCOPE"
+
+FROM base AS runner
+ARG APP
+ENV NODE_ENV=production
+ENV PORT=3000
+# Next standalone bundles the server and a minimal node_modules.
+COPY --from=installer /app/apps/${APP}/.next/standalone ./
+COPY --from=installer /app/apps/${APP}/.next/static ./apps/${APP}/.next/static
+COPY --from=installer /app/apps/${APP}/public ./apps/${APP}/public
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD \
+  node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["sh", "-c", "node apps/${APP}/server.js"]

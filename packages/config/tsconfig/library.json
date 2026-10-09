@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "NX Serve library (pure TypeScript package)",
+  "extends": "./base.json",
+  "compilerOptions": {}
+}

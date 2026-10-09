@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '9.15.0'
+
+jobs:
+  quality:
+    name: Lint, build, unit tests, contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Build
+        run: pnpm build
+      - name: Unit and property tests
+        run: pnpm --filter '!@nxserve/db' test
+      - name: i18n parity (ar and en at 100%)
+        run: pnpm i18n:check
+      - name: Generate OpenAPI and Postman
+        run: |
+          pnpm --filter @nxserve/contracts openapi:generate
+          pnpm --filter @nxserve/contracts postman:generate
+      - name: Upload API contract artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-contract
+          path: packages/contracts/openapi/
+          if-no-files-found: error
+
+  database:
+    name: Migrations, seed and RLS isolation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: nxserve_owner
+          POSTGRES_PASSWORD: nxserve_owner
+          POSTGRES_DB: nxserve
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nxserve_owner -d nxserve"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_MIGRATION_URL: postgres://nxserve_owner:nxserve_owner@localhost:5432/nxserve
+      DATABASE_URL: postgres://nxserve_app:nxserve_app@localhost:5432/nxserve
+      DATABASE_SUPERADMIN_URL: postgres://nxserve_superadmin:nxserve_superadmin@localhost:5432/nxserve
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build db package
+        run: pnpm --filter @nxserve/db build
+      - name: Migrate and seed (live PostGIS)
+        run: pnpm --filter @nxserve/db reset
+      - name: RLS isolation suite (Testcontainers)
+        run: pnpm --filter @nxserve/db test
