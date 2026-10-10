@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, LocaleContext, dirFor, translate, type Locale } from '.
 const NAV: { href: string; key: string }[] = [
   { href: '/', key: 'nav.dashboard' },
   { href: '/catalog/verticals', key: 'nav.verticals' },
+  { href: '/providers', key: 'nav.providers' },
   { href: '/settings', key: 'nav.settings' },
 ];
 
