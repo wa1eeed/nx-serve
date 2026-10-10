@@ -1,0 +1,40 @@
+# NX Serve (full)
+
+> NX Serve is a Saudi white-label platform for launching on-demand service businesses (towing, logistics, home services) with Moyasar split payments, live tracking and an API. It is configurable and multi-tenant: services, prices and workflows are edited in a console as data, with no app release.
+
+## What it is
+NX Serve is sold as white-label licences to entrepreneurs and companies who launch their own branded service business on it. Towing is the first template; moving, AC and home maintenance, cleaning, mobile car wash, vehicle inspection and more run as templates on the same engine.
+
+## How it works
+1. Sign up and pick a branded subdomain.
+2. Choose a ready template (towing, logistics).
+3. Brand it: logo, colors, domain and bilingual copy.
+4. Connect Moyasar so money reaches each recipient directly.
+5. Onboard providers with registration, documents, verification and per-category approval.
+6. Go live on the web; add branded iOS and Android apps on the Advanced plan.
+
+## Key facts
+- Money flows from Moyasar directly to each recipient via split payments. The platform never holds third-party funds, and card data never touches its servers.
+- Services, categories, dynamic fields, workflows, stages and pricing are data, edited in the console. A new service needs zero code changes.
+- Every state change is realtime: live tracking, order status and ops dashboards.
+- Bilingual Arabic and English at full parity, right to left designed. Global-ready through country packs, Saudi first.
+- Compliance: ZATCA e-invoicing, PDPL data protection, Nafath and KYB verification.
+- API platform: documented /v1 with OpenAPI, test and live keys, signed webhooks, an SDK and a developer portal.
+
+## Plans
+- Basic: web storefront, ordering, tracking, provider portal, one template.
+- Growth: zones, advanced pricing, analytics, multiple services.
+- Advanced: branded store apps, custom domain, full API access.
+- Enterprise: SLA, custom integrations, account manager.
+
+## Pages
+- Home: https://nxserve.com/en
+- Use cases: https://nxserve.com/en/use-cases
+- Towing: https://nxserve.com/en/use-cases/towing
+- Logistics and delivery: https://nxserve.com/en/use-cases/logistics
+- Features: https://nxserve.com/en/features
+- How it works: https://nxserve.com/en/how-it-works
+- Pricing: https://nxserve.com/en/pricing
+
+## Company
+- NX Serve is a product of NX Solutions. Contact: hello@nxserve.com

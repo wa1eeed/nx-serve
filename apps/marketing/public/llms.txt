@@ -1,0 +1,23 @@
+# NX Serve
+
+> NX Serve is a Saudi white-label platform for launching on-demand service businesses (towing, logistics, home services) with Moyasar split payments, live tracking and an API. It is configurable and multi-tenant: services, prices and workflows are edited in a console as data, with no app release.
+
+## Product
+- White-label web storefront and provider portal for every plan; branded iOS and Android apps on the Advanced plan.
+- Configuration engine: verticals, categories, dynamic fields, workflows and pricing are data.
+- Moyasar split payments: funds flow directly to each recipient; the platform never holds funds and card data never touches its servers.
+- Live tracking, smart dispatch, dynamic pricing, and an API platform with OpenAPI, SDK and webhooks.
+- Bilingual Arabic and English at full parity, RTL-first. Compliance: ZATCA e-invoicing, PDPL, Nafath, KYB.
+
+## Pages
+- Home: https://nxserve.com/en
+- Use cases: https://nxserve.com/en/use-cases
+- Towing: https://nxserve.com/en/use-cases/towing
+- Logistics and delivery: https://nxserve.com/en/use-cases/logistics
+- Features: https://nxserve.com/en/features
+- How it works: https://nxserve.com/en/how-it-works
+- Pricing: https://nxserve.com/en/pricing
+
+## Company
+- NX Serve is a product of NX Solutions.
+- Contact: hello@nxserve.com
