@@ -1151,6 +1151,7 @@ CREATE TABLE rate_cards (
   valid_to            timestamptz,
   created_by          uuid,
   approved_by         uuid,
+  approved_at         timestamptz,
   CHECK (approved_by IS NULL OR approved_by <> created_by)
 );
 CREATE INDEX rate_cards_lookup ON rate_cards (tenant_id, tier_id, city_id, status);

@@ -295,6 +295,8 @@ async function resolveFeeComponents(client: PoolClient, dto: EstimateRequestDto)
   const schedule = await client.query<{ id: string }>(
     `SELECT id FROM fee_schedules
      WHERE status = 'active'
+       -- An estimate carries no provider, so provider-scoped schedules never apply here.
+       AND provider_org_id IS NULL
        AND (vertical_id = $1 OR vertical_id IS NULL)
        AND (category_id = $2 OR category_id IS NULL)
        AND (city_id = $3 OR city_id IS NULL)

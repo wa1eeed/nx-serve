@@ -61,10 +61,22 @@ import {
   UploadDocumentSchema,
 } from './api/providers.js';
 import {
+  CreateFeeScheduleSchema,
+  CreateRateCardSchema,
+  CreateSurgeScheduleSchema,
   EstimateRequestSchema,
   EstimateResponseSchema,
+  FeeScheduleDetailSchema,
+  FeeScheduleSummarySchema,
+  PricingApprovalSchema,
+  RateCardDetailSchema,
+  RateCardSummarySchema,
   SimulateRequestSchema,
   SimulateResponseSchema,
+  SurgeScheduleDetailSchema,
+  UpdateFeeScheduleSchema,
+  UpdateRateCardSchema,
+  UpdateSurgeScheduleSchema,
 } from './api/pricing.js';
 
 extendZodWithOpenApi(z);
@@ -618,6 +630,191 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     security: [{ bearerAuth: [] }],
     request: { body: jsonBody(SimulateRequestSchema) },
     responses: { 200: jsonResponse('Simulation', SimulateResponseSchema), 403: problemResponse('Permission denied') },
+  });
+
+  // --- Pricing admin: rate cards and fee schedules (maker-checker), surge ---
+  const adminPricing = [{ bearerAuth: [] }];
+  const pricingId = { params: z.object({ id: z.string().uuid() }) };
+  const approvalBody = { body: jsonBody(PricingApprovalSchema) };
+
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/rate-cards',
+    tags: ['Pricing admin'],
+    summary: 'Create a rate-card draft (maker-checker, pricing.edit)',
+    security: adminPricing,
+    request: { body: jsonBody(CreateRateCardSchema) },
+    responses: { 201: jsonResponse('Draft rate card', RateCardDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('A referenced tier, city, zone or vehicle class was not found'), 422: problemResponse('Validation failed') },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/pricing/rate-cards',
+    tags: ['Pricing admin'],
+    summary: 'List rate cards (all statuses)',
+    security: adminPricing,
+    responses: { 200: jsonResponse('Rate cards', z.array(RateCardSummarySchema)) },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/pricing/rate-cards/{id}',
+    tags: ['Pricing admin'],
+    summary: 'Get a rate card',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Rate card', RateCardDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/pricing/rate-cards/{id}',
+    tags: ['Pricing admin'],
+    summary: 'Update a draft or pending rate card',
+    security: adminPricing,
+    request: { ...pricingId, body: jsonBody(UpdateRateCardSchema) },
+    responses: { 200: jsonResponse('Updated', RateCardDetailSchema), 404: problemResponse('Not found'), 409: problemResponse('Not editable'), 422: problemResponse('Validation failed') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/rate-cards/{id}/submit',
+    tags: ['Pricing admin'],
+    summary: 'Submit a draft rate card for approval',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Pending approval', RateCardDetailSchema), 404: problemResponse('Not found'), 409: problemResponse('Not a draft') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/rate-cards/{id}/approve',
+    tags: ['Pricing admin'],
+    summary: 'Approve a pending rate card (pricing.approve; the approver cannot be the creator)',
+    security: adminPricing,
+    request: { ...pricingId, ...approvalBody },
+    responses: { 200: jsonResponse('Active', RateCardDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Not found'), 409: problemResponse('Not pending, or approver is the creator') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/rate-cards/{id}/reject',
+    tags: ['Pricing admin'],
+    summary: 'Reject a pending rate card back to draft (pricing.approve)',
+    security: adminPricing,
+    request: { ...pricingId, ...approvalBody },
+    responses: { 200: jsonResponse('Back to draft', RateCardDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Not found'), 409: problemResponse('Not pending') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/rate-cards/{id}/archive',
+    tags: ['Pricing admin'],
+    summary: 'Archive a rate card (pricing.approve)',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Archived', RateCardDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Not found') },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/fee-schedules',
+    tags: ['Pricing admin'],
+    summary: 'Create a fee-schedule draft with its components (maker-checker, pricing.edit)',
+    security: adminPricing,
+    request: { body: jsonBody(CreateFeeScheduleSchema) },
+    responses: { 201: jsonResponse('Draft fee schedule', FeeScheduleDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('A referenced vertical, category, city, zone or provider was not found'), 422: problemResponse('Validation failed') },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/pricing/fee-schedules',
+    tags: ['Pricing admin'],
+    summary: 'List fee schedules (all statuses)',
+    security: adminPricing,
+    responses: { 200: jsonResponse('Fee schedules', z.array(FeeScheduleSummarySchema)) },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/pricing/fee-schedules/{id}',
+    tags: ['Pricing admin'],
+    summary: 'Get a fee schedule with its components',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Fee schedule', FeeScheduleDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/pricing/fee-schedules/{id}',
+    tags: ['Pricing admin'],
+    summary: 'Update a draft or pending fee schedule (replaces components when provided)',
+    security: adminPricing,
+    request: { ...pricingId, body: jsonBody(UpdateFeeScheduleSchema) },
+    responses: { 200: jsonResponse('Updated', FeeScheduleDetailSchema), 404: problemResponse('Not found'), 409: problemResponse('Not editable'), 422: problemResponse('Validation failed') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/fee-schedules/{id}/submit',
+    tags: ['Pricing admin'],
+    summary: 'Submit a draft fee schedule for approval',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Pending approval', FeeScheduleDetailSchema), 404: problemResponse('Not found'), 409: problemResponse('Not a draft') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/fee-schedules/{id}/approve',
+    tags: ['Pricing admin'],
+    summary: 'Approve a pending fee schedule (pricing.approve; the approver cannot be the creator)',
+    security: adminPricing,
+    request: { ...pricingId, ...approvalBody },
+    responses: { 200: jsonResponse('Active', FeeScheduleDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Not found'), 409: problemResponse('Not pending, or approver is the creator') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/fee-schedules/{id}/reject',
+    tags: ['Pricing admin'],
+    summary: 'Reject a pending fee schedule back to draft (pricing.approve)',
+    security: adminPricing,
+    request: { ...pricingId, ...approvalBody },
+    responses: { 200: jsonResponse('Back to draft', FeeScheduleDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Not found'), 409: problemResponse('Not pending') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/fee-schedules/{id}/archive',
+    tags: ['Pricing admin'],
+    summary: 'Archive a fee schedule (pricing.approve)',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Archived', FeeScheduleDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Not found') },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/surge-schedules',
+    tags: ['Pricing admin'],
+    summary: 'Create a surge schedule (pricing.edit)',
+    security: adminPricing,
+    request: { body: jsonBody(CreateSurgeScheduleSchema) },
+    responses: { 201: jsonResponse('Created', SurgeScheduleDetailSchema), 403: problemResponse('Permission denied'), 422: problemResponse('Validation failed') },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/pricing/surge-schedules',
+    tags: ['Pricing admin'],
+    summary: 'List surge schedules',
+    security: adminPricing,
+    responses: { 200: jsonResponse('Surge schedules', z.array(SurgeScheduleDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/pricing/surge-schedules/{id}',
+    tags: ['Pricing admin'],
+    summary: 'Update a surge schedule',
+    security: adminPricing,
+    request: { ...pricingId, body: jsonBody(UpdateSurgeScheduleSchema) },
+    responses: { 200: jsonResponse('Updated', SurgeScheduleDetailSchema), 404: problemResponse('Not found'), 422: problemResponse('Validation failed') },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: '/admin/pricing/surge-schedules/{id}',
+    tags: ['Pricing admin'],
+    summary: 'Deactivate a surge schedule',
+    security: adminPricing,
+    request: pricingId,
+    responses: { 200: jsonResponse('Deactivated', OkStatusSchema), 404: problemResponse('Not found') },
   });
 
   registry.registerPath({
