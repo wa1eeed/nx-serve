@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { uuidv7 } from '@nxserve/domain';
 import {
+  type CategoryDetail,
   type CreateCategoryDto,
   type CreateFieldDto,
   type CreateVerticalDto,
+  type FieldDetail,
   type UpdateCategoryDto,
   type UpdateFieldDto,
   type UpdateVerticalDto,
+  type VerticalDetail,
 } from '@nxserve/contracts';
 import { DbService } from '../db/db.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
@@ -25,27 +28,61 @@ export interface FieldResponse {
 interface FieldRow {
   id: string;
   key: string;
+  vertical_id: string;
   category_id: string | null;
-  data_type: string;
+  scope: FieldDetail['scope'];
+  data_type: FieldDetail['data_type'];
   label: Record<string, string>;
-  options: unknown;
-  validation: unknown;
-  visibility_rule: unknown;
+  options: { value: string; label_en: string; label_ar?: string }[] | null;
+  validation: Record<string, unknown> | null;
+  visibility_rule: Record<string, unknown> | null;
   reference_source: string | null;
   item_catalog_id: string | null;
   is_required: boolean;
   used_in_pricing: boolean;
   used_in_matching: boolean;
-  match_rule: unknown;
+  match_rule: Record<string, unknown> | null;
   sort_order: number;
+  is_active: boolean;
   version: number;
 }
+
+const FIELD_COLUMNS = `id, key, vertical_id, category_id, scope, data_type, label, options, validation,
+  visibility_rule, reference_source, item_catalog_id, is_required, used_in_pricing, used_in_matching,
+  match_rule, sort_order, is_active, version`;
 
 const j = (value: unknown): string => JSON.stringify(value);
 
 function mapOptions(options: CreateFieldDto['options']): unknown[] | null {
   if (!options) return null;
   return options.map((o) => ({ value: o.value, label_en: o.label.en, label_ar: o.label['ar'] ?? o.label.en }));
+}
+
+/** Maps a raw attribute_definitions row to the management detail shape. */
+function toFieldDetail(row: FieldRow): FieldDetail {
+  return {
+    id: row.id,
+    vertical_id: row.vertical_id,
+    category_id: row.category_id,
+    scope: row.scope,
+    key: row.key,
+    data_type: row.data_type,
+    label: row.label as FieldDetail['label'],
+    required: row.is_required,
+    options: row.options
+      ? row.options.map((o) => ({ value: o.value, label: { en: o.label_en, ...(o.label_ar ? { ar: o.label_ar } : {}) } }))
+      : null,
+    validation: row.validation,
+    visibility_rule: row.visibility_rule,
+    reference_source: row.reference_source,
+    item_catalog_id: row.item_catalog_id,
+    used_in_pricing: row.used_in_pricing,
+    used_in_matching: row.used_in_matching,
+    match_rule: row.match_rule,
+    sort_order: row.sort_order,
+    is_active: row.is_active,
+    version: row.version,
+  };
 }
 
 /** Admin writes for the dynamic field catalog (attribute_definitions), docs/05. */
@@ -222,6 +259,86 @@ export class CatalogAdminService {
       );
       await this.outbox.emit(client, { type: 'catalog.category_changed', tenantId, actor, data: { category_id: id, action: 'updated' } });
       return { id };
+    });
+  }
+
+  // --- Management reads (raw, not localized) for the console edit forms ---
+
+  async getVertical(tenantId: string, id: string): Promise<VerticalDetail> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query<VerticalDetail>(
+        `SELECT id, code, name, default_fulfillment, default_tracking, config, is_active
+         FROM verticals WHERE id = $1`,
+        [id],
+      );
+      const row = res.rows[0];
+      if (!row) throw new AppException('not_found', { detail: 'Vertical not found' });
+      return row;
+    });
+  }
+
+  async deleteVertical(tenantId: string, id: string, actor: Actor): Promise<{ status: 'ok' }> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query(`UPDATE verticals SET is_active = false WHERE id = $1`, [id]);
+      if ((res.rowCount ?? 0) === 0) throw new AppException('not_found', { detail: 'Vertical not found' });
+      await this.outbox.emit(client, { type: 'catalog.vertical_changed', tenantId, actor, data: { vertical_id: id, action: 'deleted' } });
+      return { status: 'ok' };
+    });
+  }
+
+  async listCategories(tenantId: string, verticalId: string): Promise<CategoryDetail[]> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query<CategoryDetail>(
+        `SELECT id, vertical_id, code, name, parent_id, fulfillment, tracking, sort_order, is_active
+         FROM categories WHERE vertical_id = $1 AND is_active = true ORDER BY sort_order`,
+        [verticalId],
+      );
+      return res.rows;
+    });
+  }
+
+  async getCategory(tenantId: string, id: string): Promise<CategoryDetail> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query<CategoryDetail>(
+        `SELECT id, vertical_id, code, name, parent_id, fulfillment, tracking, sort_order, is_active
+         FROM categories WHERE id = $1`,
+        [id],
+      );
+      const row = res.rows[0];
+      if (!row) throw new AppException('not_found', { detail: 'Category not found' });
+      return row;
+    });
+  }
+
+  async deleteCategory(tenantId: string, id: string, actor: Actor): Promise<{ status: 'ok' }> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query(`UPDATE categories SET is_active = false WHERE id = $1`, [id]);
+      if ((res.rowCount ?? 0) === 0) throw new AppException('not_found', { detail: 'Category not found' });
+      await this.outbox.emit(client, { type: 'catalog.category_changed', tenantId, actor, data: { category_id: id, action: 'deleted' } });
+      return { status: 'ok' };
+    });
+  }
+
+  async listFields(tenantId: string, verticalId: string): Promise<FieldDetail[]> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query<FieldRow>(
+        `SELECT ${FIELD_COLUMNS} FROM attribute_definitions
+         WHERE vertical_id = $1 AND owner_org_id IS NULL AND is_active = true ORDER BY sort_order`,
+        [verticalId],
+      );
+      return res.rows.map(toFieldDetail);
+    });
+  }
+
+  async getField(tenantId: string, id: string): Promise<FieldDetail> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const res = await client.query<FieldRow>(
+        `SELECT ${FIELD_COLUMNS} FROM attribute_definitions WHERE id = $1 AND owner_org_id IS NULL`,
+        [id],
+      );
+      const row = res.rows[0];
+      if (!row) throw new AppException('not_found', { detail: 'Field not found' });
+      return toFieldDetail(row);
     });
   }
 

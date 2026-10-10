@@ -149,6 +149,32 @@ export const FieldResponseSchema = z.object({
   version: z.number().int(),
 });
 
+/** Full field definition for the management console edit form (raw, not localized). */
+export const FieldDetailSchema = z.object({
+  id: z.string().uuid(),
+  vertical_id: z.string().uuid(),
+  category_id: z.string().uuid().nullable(),
+  scope: z.enum(['order', 'provider_capability', 'asset']),
+  key: z.string(),
+  data_type: FieldTypeEnum,
+  label: TranslatableTextSchema,
+  required: z.boolean(),
+  options: z.array(z.object({ value: z.string(), label: TranslatableTextSchema })).nullable(),
+  validation: z.record(z.unknown()).nullable(),
+  visibility_rule: z.record(z.unknown()).nullable(),
+  reference_source: z.string().nullable(),
+  item_catalog_id: z.string().uuid().nullable(),
+  used_in_pricing: z.boolean(),
+  used_in_matching: z.boolean(),
+  match_rule: z.record(z.unknown()).nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+  version: z.number().int(),
+});
+export type FieldDetail = z.infer<typeof FieldDetailSchema>;
+
+export const OkStatusSchema = z.object({ status: z.literal('ok') });
+
 // --- Settings ---
 export const UpsertSettingSchema = z.object({ value: z.unknown() });
 export type UpsertSettingDto = z.infer<typeof UpsertSettingSchema>;
@@ -168,6 +194,18 @@ export type CreateVerticalDto = z.infer<typeof CreateVerticalSchema>;
 export const UpdateVerticalSchema = CreateVerticalSchema.partial().omit({ code: true });
 export type UpdateVerticalDto = z.infer<typeof UpdateVerticalSchema>;
 
+/** Full vertical for the management console edit form (raw, not localized). */
+export const VerticalDetailSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: TranslatableTextSchema,
+  default_fulfillment: FulfillmentEnum,
+  default_tracking: TrackingEnum,
+  config: z.record(z.unknown()),
+  is_active: z.boolean(),
+});
+export type VerticalDetail = z.infer<typeof VerticalDetailSchema>;
+
 export const CreateCategorySchema = z.object({
   code: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/),
   name: TranslatableTextSchema,
@@ -179,6 +217,20 @@ export const CreateCategorySchema = z.object({
 export type CreateCategoryDto = z.infer<typeof CreateCategorySchema>;
 export const UpdateCategorySchema = CreateCategorySchema.partial().omit({ code: true });
 export type UpdateCategoryDto = z.infer<typeof UpdateCategorySchema>;
+
+/** Full category for the management console edit form (raw, not localized). */
+export const CategoryDetailSchema = z.object({
+  id: z.string().uuid(),
+  vertical_id: z.string().uuid(),
+  code: z.string(),
+  name: TranslatableTextSchema,
+  parent_id: z.string().uuid().nullable(),
+  fulfillment: FulfillmentEnum.nullable(),
+  tracking: TrackingEnum.nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+});
+export type CategoryDetail = z.infer<typeof CategoryDetailSchema>;
 
 // Re-export shared building blocks so the OpenAPI registry can reference them.
 export { MoneySchema, TranslatableTextSchema };

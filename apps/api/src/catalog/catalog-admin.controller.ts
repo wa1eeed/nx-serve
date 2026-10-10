@@ -1,17 +1,20 @@
-import { Body, Controller, Delete, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import {
+  type CategoryDetail,
   type CreateCategoryDto,
   CreateCategorySchema,
   type CreateFieldDto,
   CreateFieldSchema,
   type CreateVerticalDto,
   CreateVerticalSchema,
+  type FieldDetail,
   type UpdateCategoryDto,
   UpdateCategorySchema,
   type UpdateFieldDto,
   UpdateFieldSchema,
   type UpdateVerticalDto,
   UpdateVerticalSchema,
+  type VerticalDetail,
 } from '@nxserve/contracts';
 import { AppException } from '../common/app-exception.js';
 import { Ctx, RequirePermission } from '../common/decorators.js';
@@ -32,6 +35,17 @@ export class CatalogAdminController {
     return this.admin.createVertical(tenantId(ctx), body, ctx.actor);
   }
 
+  @Get('verticals/:id')
+  getVertical(@Param('id') id: string, @Ctx() ctx: RequestContext): Promise<VerticalDetail> {
+    return this.admin.getVertical(tenantId(ctx), id);
+  }
+
+  @Delete('verticals/:id')
+  @HttpCode(200)
+  deleteVertical(@Param('id') id: string, @Ctx() ctx: RequestContext): Promise<{ status: 'ok' }> {
+    return this.admin.deleteVertical(tenantId(ctx), id, ctx.actor);
+  }
+
   @Patch('verticals/:id')
   updateVertical(
     @Param('id') id: string,
@@ -39,6 +53,11 @@ export class CatalogAdminController {
     @Body(new ZodValidationPipe(UpdateVerticalSchema)) body: UpdateVerticalDto,
   ): Promise<{ id: string }> {
     return this.admin.updateVertical(tenantId(ctx), id, body, ctx.actor);
+  }
+
+  @Get('verticals/:verticalId/categories')
+  listCategories(@Param('verticalId') verticalId: string, @Ctx() ctx: RequestContext): Promise<CategoryDetail[]> {
+    return this.admin.listCategories(tenantId(ctx), verticalId);
   }
 
   @Post('verticals/:verticalId/categories')
@@ -50,6 +69,11 @@ export class CatalogAdminController {
     return this.admin.createCategory(tenantId(ctx), verticalId, body, ctx.actor);
   }
 
+  @Get('categories/:id')
+  getCategory(@Param('id') id: string, @Ctx() ctx: RequestContext): Promise<CategoryDetail> {
+    return this.admin.getCategory(tenantId(ctx), id);
+  }
+
   @Patch('categories/:id')
   updateCategory(
     @Param('id') id: string,
@@ -59,6 +83,17 @@ export class CatalogAdminController {
     return this.admin.updateCategory(tenantId(ctx), id, body, ctx.actor);
   }
 
+  @Delete('categories/:id')
+  @HttpCode(200)
+  deleteCategory(@Param('id') id: string, @Ctx() ctx: RequestContext): Promise<{ status: 'ok' }> {
+    return this.admin.deleteCategory(tenantId(ctx), id, ctx.actor);
+  }
+
+  @Get('verticals/:verticalId/fields')
+  listFields(@Param('verticalId') verticalId: string, @Ctx() ctx: RequestContext): Promise<FieldDetail[]> {
+    return this.admin.listFields(tenantId(ctx), verticalId);
+  }
+
   @Post('verticals/:verticalId/fields')
   createField(
     @Param('verticalId') verticalId: string,
@@ -66,6 +101,11 @@ export class CatalogAdminController {
     @Body(new ZodValidationPipe(CreateFieldSchema)) body: CreateFieldDto,
   ): Promise<FieldResponse> {
     return this.admin.createField(tenantId(ctx), verticalId, body, ctx.actor);
+  }
+
+  @Get('fields/:id')
+  getField(@Param('id') id: string, @Ctx() ctx: RequestContext): Promise<FieldDetail> {
+    return this.admin.getField(tenantId(ctx), id);
   }
 
   @Patch('fields/:id')

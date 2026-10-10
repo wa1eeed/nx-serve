@@ -7,10 +7,17 @@ import { z } from 'zod';
 import { ProblemSchema } from './errors/problem.js';
 import {
   BootstrapResponseSchema,
+  CategoryDetailSchema,
+  CreateCategorySchema,
+  CreateFieldSchema,
+  CreateVerticalSchema,
+  FieldDetailSchema,
+  FieldResponseSchema,
   FormSchemaSchema,
   HealthResponseSchema,
   MeResponseSchema,
   MfaVerifySchema,
+  OkStatusSchema,
   OtpChallengeResponseSchema,
   OtpRequestSchema,
   OtpVerifySchema,
@@ -19,6 +26,10 @@ import {
   StaffLoginResponseSchema,
   StaffLoginSchema,
   TokenPairSchema,
+  UpdateCategorySchema,
+  UpdateFieldSchema,
+  UpdateVerticalSchema,
+  VerticalDetailSchema,
   VerticalSummarySchema,
 } from './api/schemas.js';
 
@@ -130,6 +141,150 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
       404: problemResponse('Template not found'),
       409: problemResponse('Template already installed'),
     },
+  });
+
+  // --- Catalog administration (management console, requires catalog.manage) ---
+  const adminSec = [{ bearerAuth: [] }];
+  const idParam = { params: z.object({ id: z.string().uuid() }) };
+  const uuid = z.string().uuid();
+
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/verticals',
+    tags: ['Catalog admin'],
+    summary: 'Create a service vertical',
+    security: adminSec,
+    request: { body: jsonBody(CreateVerticalSchema) },
+    responses: {
+      201: jsonResponse('Created', z.object({ id: uuid, code: z.string() })),
+      403: problemResponse('Permission denied'),
+      422: problemResponse('Validation failed'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/verticals/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Get a vertical (raw, for editing)',
+    security: adminSec,
+    request: idParam,
+    responses: { 200: jsonResponse('Vertical', VerticalDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/verticals/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Update a vertical',
+    security: adminSec,
+    request: { ...idParam, body: jsonBody(UpdateVerticalSchema) },
+    responses: { 200: jsonResponse('Updated', z.object({ id: uuid })), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: '/admin/verticals/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Deactivate a vertical (soft delete)',
+    security: adminSec,
+    request: idParam,
+    responses: { 200: jsonResponse('Deactivated', OkStatusSchema), 404: problemResponse('Not found') },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/verticals/{verticalId}/categories',
+    tags: ['Catalog admin'],
+    summary: 'List the categories of a vertical (raw, for editing)',
+    security: adminSec,
+    request: { params: z.object({ verticalId: uuid }) },
+    responses: { 200: jsonResponse('Categories', z.array(CategoryDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/verticals/{verticalId}/categories',
+    tags: ['Catalog admin'],
+    summary: 'Create a category under a vertical',
+    security: adminSec,
+    request: { params: z.object({ verticalId: uuid }), body: jsonBody(CreateCategorySchema) },
+    responses: {
+      201: jsonResponse('Created', z.object({ id: uuid, code: z.string() })),
+      404: problemResponse('Vertical not found'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/categories/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Get a category (raw, for editing)',
+    security: adminSec,
+    request: idParam,
+    responses: { 200: jsonResponse('Category', CategoryDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/categories/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Update a category',
+    security: adminSec,
+    request: { ...idParam, body: jsonBody(UpdateCategorySchema) },
+    responses: { 200: jsonResponse('Updated', z.object({ id: uuid })), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: '/admin/categories/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Deactivate a category (soft delete)',
+    security: adminSec,
+    request: idParam,
+    responses: { 200: jsonResponse('Deactivated', OkStatusSchema), 404: problemResponse('Not found') },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/verticals/{verticalId}/fields',
+    tags: ['Catalog admin'],
+    summary: 'List the dynamic fields of a vertical (raw, for editing)',
+    security: adminSec,
+    request: { params: z.object({ verticalId: uuid }) },
+    responses: { 200: jsonResponse('Fields', z.array(FieldDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/verticals/{verticalId}/fields',
+    tags: ['Catalog admin'],
+    summary: 'Create a dynamic field',
+    security: adminSec,
+    request: { params: z.object({ verticalId: uuid }), body: jsonBody(CreateFieldSchema) },
+    responses: {
+      201: jsonResponse('Created', FieldResponseSchema),
+      404: problemResponse('Vertical not found'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/fields/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Get a dynamic field (raw, for editing)',
+    security: adminSec,
+    request: idParam,
+    responses: { 200: jsonResponse('Field', FieldDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/fields/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Update a dynamic field',
+    security: adminSec,
+    request: { ...idParam, body: jsonBody(UpdateFieldSchema) },
+    responses: { 200: jsonResponse('Updated', FieldResponseSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: '/admin/fields/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Deactivate a dynamic field (soft delete)',
+    security: adminSec,
+    request: idParam,
+    responses: { 200: jsonResponse('Deactivated', OkStatusSchema), 404: problemResponse('Not found') },
   });
 
   registry.registerPath({

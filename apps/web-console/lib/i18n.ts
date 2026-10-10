@@ -107,6 +107,24 @@ export const MESSAGES: Dict = {
     ar: 'تثبيت قالب السطحة في هذا المستأجر؟ يُنشئ القطاع والفئات والحقول ومسار العمل والفئات السعرية والخطط.',
   },
   'install.done': { en: 'Template installed.', ar: 'تم تثبيت القالب.' },
+  // --- Detail hub, edit and delete ---
+  'action.edit': { en: 'Edit', ar: 'تعديل' },
+  'action.delete': { en: 'Delete', ar: 'حذف' },
+  'detail.categories': { en: 'Categories', ar: 'الفئات' },
+  'detail.fields': { en: 'Order fields', ar: 'حقول الطلب' },
+  'detail.vertical': { en: 'Vertical', ar: 'القطاع' },
+  'detail.no_categories': { en: 'No categories yet.', ar: 'لا توجد فئات بعد.' },
+  'detail.no_fields': { en: 'No order fields yet.', ar: 'لا توجد حقول طلب بعد.' },
+  'detail.type': { en: 'Type', ar: 'النوع' },
+  'vertical.edit_title': { en: 'Edit vertical', ar: 'تعديل القطاع' },
+  'fieldeditor.edit_title': { en: 'Edit field', ar: 'تعديل الحقل' },
+  'category.edit_title': { en: 'Edit category', ar: 'تعديل الفئة' },
+  'delete.confirm_vertical': {
+    en: 'Deactivate this vertical? Its storefront and ordering stop. You can recreate it later.',
+    ar: 'تعطيل هذا القطاع؟ يتوقف عرضه والطلب عليه. يمكنك إعادة إنشائه لاحقاً.',
+  },
+  'delete.confirm_category': { en: 'Deactivate this category?', ar: 'تعطيل هذه الفئة؟' },
+  'delete.confirm_field': { en: 'Remove this field from the order form?', ar: 'إزالة هذا الحقل من نموذج الطلب؟' },
 };
 
 export function translate(locale: Locale, key: string): string {

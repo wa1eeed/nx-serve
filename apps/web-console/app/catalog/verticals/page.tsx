@@ -70,21 +70,22 @@ export default function VerticalsPage(): ReactNode {
             <tbody>
               {state.data.map((v) => (
                 <tr key={v.id} style={{ borderTop: '1px solid var(--nx-color-border)' }}>
-                  <td style={cell}>{localName(v.name, locale)}</td>
+                  <td style={cell}>
+                    <Link href={`/catalog/verticals/${v.id}`} style={linkStyle}>
+                      {localName(v.name, locale)}
+                    </Link>
+                  </td>
                   <td style={cell}>
                     <code>{v.code}</code>
                   </td>
                   <td style={cell}>{v.is_active ? '●' : '○'}</td>
                   <td style={cell}>
                     <span style={{ display: 'inline-flex', gap: 14 }}>
+                      <Link href={`/catalog/verticals/${v.id}`} style={linkStyle}>
+                        {t('action.edit')}
+                      </Link>
                       <Link href={`/catalog/verticals/${v.id}/form`} style={linkStyle}>
                         {t('verticals.preview')}
-                      </Link>
-                      <Link href={`/catalog/verticals/${v.id}/fields/new`} style={linkStyle}>
-                        {t('action.add_field')}
-                      </Link>
-                      <Link href={`/catalog/verticals/${v.id}/categories/new`} style={linkStyle}>
-                        {t('action.add_category')}
                       </Link>
                     </span>
                   </td>
