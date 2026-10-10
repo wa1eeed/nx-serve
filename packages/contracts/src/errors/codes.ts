@@ -12,6 +12,7 @@ export const ERROR_CODES = {
   forbidden: { status: 403, title: 'Forbidden' },
   permission_denied: { status: 403, title: 'Permission denied' },
   entitlement_required: { status: 403, title: 'Entitlement required' },
+  limit_exceeded: { status: 403, title: 'Plan limit reached' },
   not_found: { status: 404, title: 'Resource not found' },
   tenant_not_resolved: { status: 404, title: 'Tenant could not be resolved' },
   method_not_allowed: { status: 405, title: 'Method not allowed' },

@@ -36,6 +36,7 @@ import { type Actor } from '../context/request-context.js';
 import { INTEGRATIONS } from '../integrations/integrations.module.js';
 import { OtpService } from '../auth/otp.service.js';
 import { TokenService, type TokenPair } from '../auth/token.service.js';
+import { EntitlementsService } from '../authz/entitlements.service.js';
 
 interface AgentContext {
   agentId: string;
@@ -54,8 +55,29 @@ export class ProvidersService {
     private readonly outbox: OutboxService,
     private readonly otp: OtpService,
     private readonly tokens: TokenService,
+    private readonly entitlements: EntitlementsService,
     @Inject(INTEGRATIONS) private readonly integrations: Integrations,
   ) {}
+
+  /** The tenant plan limit value, or null when unlimited. Resolved outside any tx. */
+  private async limitValue(tenantId: string, key: 'max_providers' | 'max_agents'): Promise<number | null> {
+    const { limits } = await this.entitlements.getEffective(tenantId);
+    return limits[key] ?? null;
+  }
+
+  /** Throws limit_exceeded when the active-row count has reached a pre-fetched cap. */
+  private async enforceCount(
+    client: PoolClient,
+    max: number | null,
+    table: 'provider_orgs' | 'provider_agents',
+    key: string,
+  ): Promise<void> {
+    if (max === null) return;
+    const res = await client.query<{ n: number }>(`SELECT count(*)::int AS n FROM ${table} WHERE is_active = true`);
+    if ((res.rows[0]?.n ?? 0) >= max) {
+      throw new AppException('limit_exceeded', { detail: `${key} reached` });
+    }
+  }
 
   // --- Registration (OTP verified signup, no existing agent) ---
 
@@ -72,13 +94,16 @@ export class ProvidersService {
       throw new AppException('validation_error', { detail: 'owner.mobile must match the verified number' });
     }
 
-    // Reject a duplicate mobile before any external side effect, so a retried or
-    // double-submitted registration never orphans a merchant or identity check.
+    // Resolve the provider cap before any external side effect, then reject a
+    // duplicate mobile or an over-limit tenant, so a retried or double-submitted
+    // registration never orphans a merchant or identity check.
+    const maxProviders = await this.limitValue(tenantId, 'max_providers');
     await this.db.withTenant(tenantId, async (client) => {
       const existing = await client.query(`SELECT 1 FROM provider_agents WHERE mobile = $1`, [otp.mobile]);
       if ((existing.rowCount ?? 0) > 0) {
         throw new AppException('conflict', { detail: 'This mobile already belongs to a provider' });
       }
+      await this.enforceCount(client, maxProviders, 'provider_orgs', 'max_providers');
     });
 
     // Integration calls run before the write transaction (no network IO inside a tx).
@@ -152,8 +177,10 @@ export class ProvidersService {
   }
 
   async addAgent(tenantId: string, callerId: string, dto: CreateAgentDto): Promise<AgentDetail> {
+    const maxAgents = await this.limitValue(tenantId, 'max_agents');
     return this.db.withTenant(tenantId, async (client) => {
       const ctx = await this.requireOwner(client, callerId);
+      await this.enforceCount(client, maxAgents, 'provider_agents', 'max_agents');
       const id = uuidv7();
       await client.query(
         `INSERT INTO provider_agents (id, tenant_id, org_id, full_name, mobile, role) VALUES ($1,$2,$3,$4,$5,$6)`,
