@@ -5,6 +5,7 @@ import { HERO, HOME_FAQ } from '../../lib/content';
 import { isLocale, pick, type Locale } from '../../lib/i18n';
 import { buildMetadata, faqLd, organizationLd, softwareApplicationLd, websiteLd } from '../../lib/seo';
 import { CtaBand, FaqList, FeatureGrid, Hero, Steps, TrustBar, UseCaseTeaser } from '../../components/sections';
+import { CalculatorSection } from '../../components/revenue-calculator';
 import { JsonLd } from '../../components/jsonld';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -30,6 +31,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <FeatureGrid locale={l} />
       <UseCaseTeaser locale={l} />
       <Steps locale={l} />
+      <CalculatorSection locale={l} />
       <FaqList faqs={HOME_FAQ} locale={l} />
       <CtaBand locale={l} />
     </>

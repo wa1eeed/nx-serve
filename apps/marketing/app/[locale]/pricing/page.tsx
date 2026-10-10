@@ -5,6 +5,7 @@ import { isLocale, SITE, type Locale } from '../../../lib/i18n';
 import { buildMetadata, faqLd, plansLd } from '../../../lib/seo';
 import type { Faq } from '../../../lib/content';
 import { CtaBand, FaqList, PricingCards, SectionHeading } from '../../../components/sections';
+import { CalculatorSection } from '../../../components/revenue-calculator';
 import { Container } from '../../../components/site';
 import { JsonLd } from '../../../components/jsonld';
 
@@ -72,6 +73,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
           </p>
         </Container>
       </section>
+      <CalculatorSection locale={l} />
       <FaqList faqs={PRICING_FAQ} locale={l} heading={l === 'ar' ? 'أسئلة الفوترة' : 'Billing questions'} />
       <CtaBand locale={l} />
     </>
