@@ -33,7 +33,7 @@ export function Hero({ locale }: { locale: Locale }): ReactNode {
           {pick(HERO.subtitle, locale)}
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Btn href={`/${locale}/pricing`}>{pick(HERO.ctaPrimary, locale)}</Btn>
+          <Btn href={`/${locale}/demo`}>{pick(HERO.ctaPrimary, locale)}</Btn>
           <Btn href={`/${locale}/use-cases`} variant="ghost">
             {pick(HERO.ctaSecondary, locale)}
           </Btn>
@@ -191,7 +191,7 @@ export function CtaBand({ locale }: { locale: Locale }): ReactNode {
           <h2 style={{ fontSize: 26, margin: '0 0 8px' }}>{pick(CTA.title, locale)}</h2>
           <p style={{ color: 'var(--nx-color-muted-foreground)', margin: '0 auto 20px', maxWidth: 520 }}>{pick(CTA.body, locale)}</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Btn href={`/${locale}/pricing`}>{pick(CTA.primary, locale)}</Btn>
+            <Btn href={`/${locale}/demo`}>{pick(CTA.primary, locale)}</Btn>
             <Btn href={`/${locale}/use-cases`} variant="ghost">
               {pick(CTA.secondary, locale)}
             </Btn>

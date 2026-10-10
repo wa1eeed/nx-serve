@@ -18,6 +18,14 @@
 - How it works: https://nxserve.com/en/how-it-works
 - Pricing: https://nxserve.com/en/pricing
 
+## Guides
+- Guides index: https://nxserve.com/en/guides
+- How to start a towing business in Saudi Arabia: https://nxserve.com/en/guides/start-a-towing-business-saudi
+- White-label platform vs building from scratch: https://nxserve.com/en/guides/white-label-vs-build-from-scratch
+- How to launch your own delivery platform: https://nxserve.com/en/guides/launch-your-own-delivery-platform
+- How split payments work with Moyasar: https://nxserve.com/en/guides/how-split-payments-work
+- How to price on-demand services: https://nxserve.com/en/guides/how-to-price-on-demand-services
+
 ## Company
 - NX Serve is a product of NX Solutions.
 - Contact: hello@nxserve.com

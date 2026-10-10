@@ -60,7 +60,7 @@ export function SiteHeader({ locale }: { locale: Locale }): ReactNode {
           </a>
         </nav>
         <LocaleSwitch locale={locale} />
-        <Btn href={`/${locale}/pricing`}>{locale === 'ar' ? 'اطلب عرضاً' : 'Book a demo'}</Btn>
+        <Btn href={`/${locale}/demo`}>{locale === 'ar' ? 'اطلب عرضاً' : 'Book a demo'}</Btn>
       </Container>
     </header>
   );

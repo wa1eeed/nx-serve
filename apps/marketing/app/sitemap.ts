@@ -1,8 +1,19 @@
 import type { MetadataRoute } from 'next';
 import { USE_CASES } from '../lib/content';
+import { GUIDES } from '../lib/guides';
 import { LOCALES, SITE } from '../lib/i18n';
 
-const PATHS = ['', '/use-cases', '/features', '/how-it-works', '/pricing', ...USE_CASES.map((u) => `/use-cases/${u.slug}`)];
+const PATHS = [
+  '',
+  '/use-cases',
+  '/features',
+  '/how-it-works',
+  '/pricing',
+  '/guides',
+  '/demo',
+  ...USE_CASES.map((u) => `/use-cases/${u.slug}`),
+  ...GUIDES.map((g) => `/guides/${g.slug}`),
+];
 
 /** Sitemap with per-locale URLs and hreflang alternates (docs/22 section 4). */
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ENTITY, HOME_FAQ, PLANS, type Faq } from './content';
+import type { Guide } from './guides';
 import { SITE, ogLocale, pick, type L, type Locale } from './i18n';
 
 /** Builds per-page metadata with canonical and hreflang alternates (docs/22 section 4). */
@@ -117,6 +118,34 @@ export function plansLd(locale: Locale): Json {
       category: 'subscription',
       description: pick(p.blurb, locale),
     })),
+  };
+}
+
+export function articleLd(guide: Guide, locale: Locale): Json {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: pick(guide.title, locale),
+    description: pick(guide.description, locale),
+    author: { '@type': 'Organization', name: pick(guide.author, locale) },
+    publisher: { '@type': 'Organization', name: SITE.name },
+    datePublished: guide.datePublished,
+    dateModified: guide.dateModified,
+    inLanguage: locale === 'ar' ? 'ar-SA' : 'en',
+    mainEntityOfPage: `${SITE.baseUrl}/${locale}/guides/${guide.slug}`,
+  };
+}
+
+/** HowTo schema from a guide's steps block, when present (docs/22 section 5). */
+export function howToLd(guide: Guide, locale: Locale): Json | null {
+  const steps = guide.blocks.find((b) => b.kind === 'steps');
+  if (!steps || steps.kind !== 'steps') return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: pick(guide.title, locale),
+    description: pick(guide.description, locale),
+    step: pick(steps.items, locale).map((text, i) => ({ '@type': 'HowToStep', position: i + 1, text })),
   };
 }
 

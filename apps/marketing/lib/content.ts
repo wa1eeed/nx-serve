@@ -15,6 +15,7 @@ export const NAV: NavItem[] = [
   { href: '/features', label: { ar: 'المزايا', en: 'Features' } },
   { href: '/how-it-works', label: { ar: 'كيف يعمل', en: 'How it works' } },
   { href: '/pricing', label: { ar: 'الأسعار', en: 'Pricing' } },
+  { href: '/guides', label: { ar: 'الأدلة', en: 'Guides' } },
 ];
 
 /** One consistent entity definition, repeated everywhere (GEO, docs/22 section 6). */
