@@ -39,6 +39,8 @@ export function TextInput(props: {
   onChange: (v: string) => void;
   type?: 'text' | 'number';
   placeholder?: string;
+  required?: boolean;
+  min?: number;
 }): ReactNode {
   return (
     <input
@@ -46,6 +48,8 @@ export function TextInput(props: {
       type={props.type ?? 'text'}
       value={props.value}
       placeholder={props.placeholder}
+      required={props.required ?? false}
+      {...(props.min !== undefined ? { min: props.min } : {})}
       onChange={(e) => props.onChange(e.target.value)}
     />
   );
