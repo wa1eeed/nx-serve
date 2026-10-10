@@ -65,6 +65,24 @@ export class TokenService {
       .sign(this.accessKey);
   }
 
+  /** Verifies an access JWT and returns the actor it represents. */
+  async verifyAccess(token: string): Promise<{ type: ActorType; id: string; tenantId: string | null }> {
+    try {
+      const { payload } = await jwtVerify(token, this.accessKey);
+      if (typeof payload.sub !== 'string' || typeof payload.typ !== 'string') {
+        throw new AppException('unauthorized');
+      }
+      return {
+        type: payload.typ as ActorType,
+        id: payload.sub,
+        tenantId: (payload.tid as string | null) ?? null,
+      };
+    } catch (err) {
+      if (err instanceof AppException) throw err;
+      throw new AppException('unauthorized', { detail: 'Invalid access token' });
+    }
+  }
+
   async verifyMfaToken(token: string): Promise<{ staffId: string; tenantId: string | null }> {
     try {
       const { payload } = await jwtVerify(token, this.accessKey);

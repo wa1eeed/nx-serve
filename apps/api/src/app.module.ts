@@ -8,9 +8,14 @@ import { InfraModule } from './infra/infra.module.js';
 import { HealthModule } from './health/health.module.js';
 import { BootstrapModule } from './bootstrap/bootstrap.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AuthzModule } from './authz/authz.module.js';
+import { CatalogModule } from './catalog/catalog.module.js';
 import { ContextMiddleware } from './context/context.middleware.js';
 import { ProblemExceptionFilter } from './common/problem.filter.js';
 import { TenancyGuard } from './tenancy/tenancy.guard.js';
+import { AccessTokenGuard } from './authz/access-token.guard.js';
+import { EntitlementGuard } from './authz/entitlement.guard.js';
+import { PermissionGuard } from './authz/permission.guard.js';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor.js';
 import { AuditInterceptor } from './audit/audit.interceptor.js';
 
@@ -24,10 +29,16 @@ import { AuditInterceptor } from './audit/audit.interceptor.js';
     HealthModule,
     BootstrapModule,
     AuthModule,
+    AuthzModule,
+    CatalogModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemExceptionFilter },
+    // Guards run in order: resolve tenant, set actor, then entitlement and permission checks.
     { provide: APP_GUARD, useClass: TenancyGuard },
+    { provide: APP_GUARD, useClass: AccessTokenGuard },
+    { provide: APP_GUARD, useClass: EntitlementGuard },
+    { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],

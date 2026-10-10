@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { ProblemSchema } from './errors/problem.js';
 import {
   BootstrapResponseSchema,
+  FormSchemaSchema,
   HealthResponseSchema,
   MeResponseSchema,
   MfaVerifySchema,
@@ -18,6 +19,7 @@ import {
   StaffLoginResponseSchema,
   StaffLoginSchema,
   TokenPairSchema,
+  VerticalSummarySchema,
 } from './api/schemas.js';
 
 extendZodWithOpenApi(z);
@@ -91,6 +93,30 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     summary: 'Current request context (actor, tenant, locale)',
     security: [{ bearerAuth: [] }],
     responses: { 200: jsonResponse('Context', MeResponseSchema) },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/catalog/verticals',
+    tags: ['Catalog'],
+    summary: 'List the tenant service verticals',
+    security: [{ bearerAuth: [] }, { secretKey: [] }],
+    responses: {
+      200: jsonResponse('Verticals', z.array(VerticalSummarySchema)),
+      404: problemResponse('Tenant could not be resolved'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/catalog/verticals/{id}/form',
+    tags: ['Catalog'],
+    summary: 'The order form schema for a vertical, merged and localized (ETag versioned)',
+    security: [{ bearerAuth: [] }, { secretKey: [] }],
+    responses: {
+      200: jsonResponse('Form schema', FormSchemaSchema),
+      404: problemResponse('Vertical or tenant not found'),
+    },
   });
 
   registry.registerPath({

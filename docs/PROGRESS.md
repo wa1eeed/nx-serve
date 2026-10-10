@@ -6,7 +6,7 @@ Updated by Claude Code at the end of every working session.
 |---|---|---|
 | Design | Done | Decisions in docs/00, reference schema validated (94 tables). |
 | 0. Foundation | Nearly done | All packages, API, worker, realtime, web shells, CI, Docker and Coolify docs built and green. Pending: live staging deploy (blocked on Q25 domain, Q26 VPS) and the local live DB run (Docker daemon down; validated in CI). |
-| 1. Catalog and configuration | In progress | Plan approved. Domain engines done: field validation, entitlements resolver, settings resolver (100% coverage, 54 domain tests). Next: contracts, API authz guards, catalog module. |
+| 1. Catalog and configuration | In progress | Domain engines (field validation, entitlements, settings, form schema builder) done at 100% coverage. Contracts (form schema + catalog in OpenAPI), API authorization (access token guard, entitlement and permission guards, cached services) and the catalog module with the form schema endpoint built and booting. Next: admin write endpoints, geo/vehicles/settings/rbac modules, template install, console screens. |
 | 2. Providers | Not started | |
 | 3. Pricing and fees | Not started | |
 | 4. Orders end-to-end (MVP) | Not started | |

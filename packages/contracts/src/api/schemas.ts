@@ -79,5 +79,38 @@ export const MfaRequiredSchema = z.object({
 
 export const StaffLoginResponseSchema = z.union([TokenPairSchema, MfaRequiredSchema]);
 
+// --- Catalog ---
+export const VerticalSummarySchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: TranslatableTextSchema,
+  default_fulfillment: z.enum(['at_customer', 'point_to_point', 'at_provider', 'remote']),
+  default_tracking: z.enum(['none', 'en_route', 'full_trip']),
+  is_active: z.boolean(),
+});
+
+export const RenderedFieldSchema = z.object({
+  key: z.string(),
+  type: z.string(),
+  required: z.boolean(),
+  label: z.string().optional(),
+  i18n_key: z.string().optional(),
+  options: z.array(z.object({ value: z.string(), label: z.string() })).optional(),
+  validation: z.record(z.unknown()).optional(),
+  visibility: z.record(z.unknown()).optional(),
+  allow_custom: z.boolean().optional(),
+  reference_source: z.string().optional(),
+});
+
+export const FormSchemaSchema = z.object({
+  version: z.string(),
+  locale: z.enum(['ar', 'en']),
+  fulfillment: z.enum(['at_customer', 'point_to_point', 'at_provider', 'remote']),
+  tracking: z.enum(['none', 'en_route', 'full_trip']),
+  sections: z.array(
+    z.object({ key: z.enum(['fulfillment', 'service']), fields: z.array(RenderedFieldSchema) }),
+  ),
+});
+
 // Re-export shared building blocks so the OpenAPI registry can reference them.
 export { MoneySchema, TranslatableTextSchema };
