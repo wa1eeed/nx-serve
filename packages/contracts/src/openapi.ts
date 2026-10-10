@@ -39,6 +39,21 @@ import {
   VerticalDetailSchema,
   VerticalSummarySchema,
 } from './api/schemas.js';
+import {
+  AgentDetailSchema,
+  ApplyOfferingSchema,
+  AssetDetailSchema,
+  CreateAgentSchema,
+  CreateAssetSchema,
+  DocumentDetailSchema,
+  LinkAgentAssetSchema,
+  OfferingDetailSchema,
+  OnboardingStatusSchema,
+  PresenceSchema,
+  ProviderOrgDetailSchema,
+  RegisterProviderRequestSchema,
+  UploadDocumentSchema,
+} from './api/providers.js';
 
 extendZodWithOpenApi(z);
 
@@ -365,6 +380,102 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
       404: problemResponse('Not found'),
       409: problemResponse('Stage is referenced by existing orders'),
     },
+  });
+
+  // --- Providers (self service; docs/08) ---
+  registry.registerPath({
+    method: 'post',
+    path: '/providers/register',
+    tags: ['Providers'],
+    summary: 'Register a provider (OTP verified): starts identity check and creates the sandbox merchant',
+    request: { body: jsonBody(RegisterProviderRequestSchema) },
+    responses: {
+      201: jsonResponse('Registered', z.object({ org: ProviderOrgDetailSchema, tokens: TokenPair })),
+      401: problemResponse('OTP invalid or expired'),
+      409: problemResponse('Mobile already belongs to a provider'),
+      422: problemResponse('Validation failed'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/providers/me',
+    tags: ['Providers'],
+    summary: 'The authenticated provider org and its onboarding readiness',
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: jsonResponse('Provider and onboarding', z.object({ org: ProviderOrgDetailSchema, onboarding: OnboardingStatusSchema })),
+      401: problemResponse('Provider agent authentication required'),
+    },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/providers/me/agents',
+    tags: ['Providers'],
+    summary: 'Add an agent to the provider (owner only)',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(CreateAgentSchema) },
+    responses: { 201: jsonResponse('Agent', AgentDetailSchema), 403: problemResponse('Owner only') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/providers/me/assets',
+    tags: ['Providers'],
+    summary: 'Add an asset (attributes validated against the vertical asset fields)',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(CreateAssetSchema) },
+    responses: { 201: jsonResponse('Asset', AssetDetailSchema), 422: problemResponse('Invalid attributes') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/providers/me/agent-assets',
+    tags: ['Providers'],
+    summary: 'Link an agent to an asset',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(LinkAgentAssetSchema) },
+    responses: { 201: jsonResponse('Linked', OkStatusSchema), 404: problemResponse('Agent or asset not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/providers/me/offerings',
+    tags: ['Providers'],
+    summary: 'Apply for an offering (category and zone)',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(ApplyOfferingSchema) },
+    responses: { 201: jsonResponse('Offering', OfferingDetailSchema) },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/providers/me/offerings',
+    tags: ['Providers'],
+    summary: 'List the provider offerings',
+    security: [{ bearerAuth: [] }],
+    responses: { 200: jsonResponse('Offerings', z.array(OfferingDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/providers/me/documents',
+    tags: ['Providers'],
+    summary: 'Upload a document reference for a category requirement',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(UploadDocumentSchema) },
+    responses: { 201: jsonResponse('Document', DocumentDetailSchema), 422: problemResponse('Scope or date invalid') },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/providers/me/documents',
+    tags: ['Providers'],
+    summary: 'List the provider documents',
+    security: [{ bearerAuth: [] }],
+    responses: { 200: jsonResponse('Documents', z.array(DocumentDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'put',
+    path: '/providers/me/presence',
+    tags: ['Providers'],
+    summary: 'Update the agent presence (online, offline, busy) and location',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(PresenceSchema) },
+    responses: { 200: jsonResponse('Updated', OkStatusSchema) },
   });
 
   registry.registerPath({

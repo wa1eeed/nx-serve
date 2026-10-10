@@ -43,6 +43,13 @@ export const RegisterProviderSchema = z.object({
 });
 export type RegisterProviderDto = z.infer<typeof RegisterProviderSchema>;
 
+/** Registration is authenticated by a verified phone OTP (no pre-existing agent). */
+export const RegisterProviderRequestSchema = RegisterProviderSchema.extend({
+  challenge_id: z.string().uuid(),
+  code: z.string().min(4).max(8),
+});
+export type RegisterProviderRequestDto = z.infer<typeof RegisterProviderRequestSchema>;
+
 export const CreateAgentSchema = z.object({
   full_name: z.string().min(1).max(160),
   mobile: MobileSchema,

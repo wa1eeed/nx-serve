@@ -14,6 +14,7 @@ import { GeoModule } from './geo/geo.module.js';
 import { VehiclesModule } from './vehicles/vehicles.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { RbacModule } from './rbac/rbac.module.js';
+import { ProvidersModule } from './providers/providers.module.js';
 import { ContextMiddleware } from './context/context.middleware.js';
 import { ProblemExceptionFilter } from './common/problem.filter.js';
 import { TenancyGuard } from './tenancy/tenancy.guard.js';
@@ -39,6 +40,7 @@ import { AuditInterceptor } from './audit/audit.interceptor.js';
     VehiclesModule,
     SettingsModule,
     RbacModule,
+    ProvidersModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemExceptionFilter },

@@ -9,6 +9,6 @@ import { TotpService } from './totp.service.js';
 @Module({
   controllers: [AuthController],
   providers: [AuthService, OtpService, TokenService, PasswordService, TotpService],
-  exports: [TokenService],
+  exports: [TokenService, OtpService],
 })
 export class AuthModule {}
