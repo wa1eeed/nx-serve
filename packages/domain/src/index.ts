@@ -8,3 +8,7 @@ export * from './fields/validate.js';
 export * from './entitlements/resolve.js';
 export * from './settings/resolve.js';
 export * from './forms/form-schema.js';
+export * from './providers/common.js';
+export * from './providers/documents.js';
+export * from './providers/onboarding.js';
+export * from './providers/eligibility.js';
