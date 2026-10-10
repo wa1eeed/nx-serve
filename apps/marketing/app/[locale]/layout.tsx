@@ -1,8 +1,12 @@
 import '@nxserve/design-tokens/tokens.css';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { LOCALES, dir, isLocale } from '../../lib/i18n';
+import { LOCALES, SITE, dir, isLocale } from '../../lib/i18n';
 import { SiteFooter, SiteHeader } from '../../components/site';
+
+// Resolves relative Open Graph and Twitter image URLs to the real origin.
+export const metadata: Metadata = { metadataBase: new URL(SITE.baseUrl) };
 
 export function generateStaticParams(): { locale: string }[] {
   return LOCALES.map((locale) => ({ locale }));
