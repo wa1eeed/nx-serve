@@ -60,6 +60,12 @@ import {
   ReviewOfferingSchema,
   UploadDocumentSchema,
 } from './api/providers.js';
+import {
+  EstimateRequestSchema,
+  EstimateResponseSchema,
+  SimulateRequestSchema,
+  SimulateResponseSchema,
+} from './api/pricing.js';
 
 extendZodWithOpenApi(z);
 
@@ -588,6 +594,30 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     summary: 'Gateway merchant status webhook (shared secret, processed exactly once)',
     request: { body: jsonBody(MerchantWebhookSchema) },
     responses: { 200: jsonResponse('Accepted', OkStatusSchema), 401: problemResponse('Verification failed') },
+  });
+
+  // --- Pricing (docs/09) ---
+  registry.registerPath({
+    method: 'post',
+    path: '/estimates',
+    tags: ['Pricing'],
+    summary: 'Create a price estimate (a quote) for a trip; stored with a short expiry',
+    security: [{ bearerAuth: [] }, { secretKey: [] }],
+    request: { body: jsonBody(EstimateRequestSchema) },
+    responses: {
+      201: jsonResponse('Estimate', EstimateResponseSchema),
+      404: problemResponse('No active rate card for this scope'),
+      422: problemResponse('Validation failed'),
+    },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/pricing/simulate',
+    tags: ['Pricing'],
+    summary: 'Fee and price simulator: compute a fare, fees, splits and settlement from inputs',
+    security: [{ bearerAuth: [] }],
+    request: { body: jsonBody(SimulateRequestSchema) },
+    responses: { 200: jsonResponse('Simulation', SimulateResponseSchema), 403: problemResponse('Permission denied') },
   });
 
   registry.registerPath({
