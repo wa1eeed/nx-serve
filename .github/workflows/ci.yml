@@ -47,7 +47,7 @@ jobs:
           if-no-files-found: error
 
   database:
-    name: Migrations, seed and RLS isolation
+    name: Migrations, seed, RLS isolation and API write-path e2e
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -83,3 +83,10 @@ jobs:
         run: pnpm --filter @nxserve/db reset
       - name: RLS isolation suite (Testcontainers)
         run: pnpm --filter @nxserve/db test
+      - name: Build API runtime deps
+        run: pnpm --filter @nxserve/contracts --filter @nxserve/domain --filter @nxserve/integrations build
+      - name: API catalog write-path e2e (live PostGIS)
+        run: pnpm --filter @nxserve/api test
+        env:
+          JWT_ACCESS_SECRET: e2e-access-secret
+          PLATFORM_DOMAIN: localhost
