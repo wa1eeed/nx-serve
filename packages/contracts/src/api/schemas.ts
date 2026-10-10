@@ -112,5 +112,42 @@ export const FormSchemaSchema = z.object({
   ),
 });
 
+// --- Catalog admin: fields (attribute definitions) ---
+const FieldTypeEnum = z.enum([
+  'text', 'number', 'boolean', 'single_select', 'multi_select',
+  'date', 'location', 'media', 'item_list', 'reference',
+]);
+
+export const CreateFieldSchema = z.object({
+  key: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/, 'key must be snake_case'),
+  category_id: z.string().uuid().optional(),
+  scope: z.enum(['order', 'provider_capability', 'asset']).default('order'),
+  data_type: FieldTypeEnum,
+  label: TranslatableTextSchema,
+  required: z.boolean().default(false),
+  options: z.array(z.object({ value: z.string(), label: TranslatableTextSchema })).optional(),
+  validation: z.record(z.unknown()).optional(),
+  visibility_rule: z.record(z.unknown()).optional(),
+  reference_source: z.string().optional(),
+  item_catalog_id: z.string().uuid().optional(),
+  used_in_pricing: z.boolean().default(false),
+  used_in_matching: z.boolean().default(false),
+  match_rule: z.record(z.unknown()).optional(),
+  sort_order: z.number().int().default(0),
+});
+export type CreateFieldDto = z.infer<typeof CreateFieldSchema>;
+
+export const UpdateFieldSchema = CreateFieldSchema.partial().omit({ scope: true });
+export type UpdateFieldDto = z.infer<typeof UpdateFieldSchema>;
+
+export const FieldResponseSchema = z.object({
+  id: z.string().uuid(),
+  key: z.string(),
+  data_type: z.string(),
+  label: TranslatableTextSchema,
+  required: z.boolean(),
+  version: z.number().int(),
+});
+
 // Re-export shared building blocks so the OpenAPI registry can reference them.
 export { MoneySchema, TranslatableTextSchema };
