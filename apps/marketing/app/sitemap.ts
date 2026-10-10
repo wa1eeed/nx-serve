@@ -11,6 +11,7 @@ const PATHS = [
   '/pricing',
   '/guides',
   '/demo',
+  '/privacy',
   ...USE_CASES.map((u) => `/use-cases/${u.slug}`),
   ...GUIDES.map((g) => `/guides/${g.slug}`),
 ];

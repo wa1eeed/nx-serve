@@ -8,6 +8,33 @@ interface DemoLead {
   interest?: string;
   message?: string;
   locale?: string;
+  analytics_consent?: boolean;
+}
+
+/**
+ * Server-side conversion event (docs/22 section 7), sent only when the visitor
+ * consented to analytics and GA4 Measurement Protocol credentials are configured.
+ * Best effort: a failure here never fails the lead submission.
+ */
+async function sendConversion(interest: string): Promise<void> {
+  const measurementId = process.env.GA_MEASUREMENT_ID;
+  const apiSecret = process.env.GA_API_SECRET;
+  if (!measurementId || !apiSecret) return;
+  try {
+    await fetch(
+      `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          client_id: crypto.randomUUID(),
+          events: [{ name: 'generate_lead', params: { service: interest } }],
+        }),
+      },
+    );
+  } catch {
+    /* best effort */
+  }
 }
 
 /**
@@ -57,6 +84,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } else {
     // No CRM configured yet: record the lead so it is not lost in development.
     console.info('[demo-lead]', JSON.stringify({ ...payload, email: '[redacted]' }));
+  }
+
+  if (lead.analytics_consent === true) {
+    await sendConversion(payload.interest);
   }
 
   return NextResponse.json({ status: 'ok' });

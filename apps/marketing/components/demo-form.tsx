@@ -1,6 +1,7 @@
 'use client';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { SITE, type Locale } from '../lib/i18n';
+import { hasConsent, track } from '../lib/analytics';
 
 const T = {
   ar: {
@@ -67,12 +68,19 @@ export function DemoForm({ locale }: { locale: Locale }): ReactNode {
     }
     setStatus('sending');
     try {
+      const analyticsConsent = hasConsent();
       const res = await fetch('/api/demo', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...form, locale }),
+        body: JSON.stringify({ ...form, locale, analytics_consent: analyticsConsent }),
       });
-      setStatus(res.ok ? 'success' : 'error');
+      if (res.ok) {
+        setStatus('success');
+        // Conversion event (only reaches GA if the visitor consented).
+        track('generate_lead', { service: form.interest, locale });
+      } else {
+        setStatus('error');
+      }
     } catch {
       setStatus('error');
     }

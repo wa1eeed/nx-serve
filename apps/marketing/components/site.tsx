@@ -79,6 +79,9 @@ export function SiteFooter({ locale }: { locale: Locale }): ReactNode {
               {pick(item.label, locale)}
             </Link>
           ))}
+          <Link href={`/${locale}/privacy`} style={{ color: 'var(--nx-color-muted-foreground)', textDecoration: 'none' }}>
+            {locale === 'ar' ? 'سياسة الخصوصية' : 'Privacy'}
+          </Link>
           <a href={`mailto:${SITE.email}`} style={{ color: 'var(--nx-color-muted-foreground)', textDecoration: 'none' }}>
             {SITE.email}
           </a>

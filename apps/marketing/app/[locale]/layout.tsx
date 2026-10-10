@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { LOCALES, SITE, dir, isLocale } from '../../lib/i18n';
 import { SiteFooter, SiteHeader } from '../../components/site';
+import { Analytics } from '../../components/analytics';
+import { ConsentBanner } from '../../components/consent-banner';
 
 // Resolves relative Open Graph and Twitter image URLs to the real origin.
 export const metadata: Metadata = { metadataBase: new URL(SITE.baseUrl) };
@@ -35,6 +37,8 @@ export default async function LocaleLayout({
         <SiteHeader locale={locale} />
         <main>{children}</main>
         <SiteFooter locale={locale} />
+        <ConsentBanner locale={locale} />
+        <Analytics />
       </body>
     </html>
   );
