@@ -2,6 +2,9 @@ import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import {
   type AdvanceStageDto,
   AdvanceStageSchema,
+  type CancelOrderDto,
+  CancelOrderSchema,
+  type CancelResult,
   type CreateOrderDto,
   CreateOrderSchema,
   type OrderDetail,
@@ -40,6 +43,16 @@ export class OrdersController {
     @Body(new ZodValidationPipe(AdvanceStageSchema)) body: AdvanceStageDto,
   ): Promise<StageResult> {
     return this.orders.advanceStage(tenantId(ctx), id, body, ctx.actor);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  cancel(
+    @Param('id') id: string,
+    @Ctx() ctx: RequestContext,
+    @Body(new ZodValidationPipe(CancelOrderSchema)) body: CancelOrderDto,
+  ): Promise<CancelResult> {
+    return this.orders.cancelOrder(tenantId(ctx), id, body, ctx.actor);
   }
 }
 

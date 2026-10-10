@@ -123,6 +123,16 @@ export const ForceTransitionSchema = z.object({
 });
 export type ForceTransitionDto = z.infer<typeof ForceTransitionSchema>;
 
+export const CancelResultSchema = z.object({
+  order_id: z.string().uuid(),
+  status: OrderStatusSchema,
+  cancellation: z.object({
+    action: z.enum(['none', 'void', 'partial_capture']),
+    charge_minor: MinorAmount,
+  }),
+});
+export type CancelResult = z.infer<typeof CancelResultSchema>;
+
 /** The result of a stage transition: the new status, stage and the side effects. */
 export const StageResultSchema = z.object({
   order_id: z.string().uuid(),

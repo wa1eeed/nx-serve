@@ -7,14 +7,25 @@ import {
   type ProofProvided,
   type Stage,
   type StageActor,
+  type CancellationMoment,
   type Transition,
+  abortWorkflow,
   advanceWorkflow,
   isTerminalStatus,
+  resolveCancellation,
   stageByCode,
   startWorkflow,
   uuidv7,
 } from '@nxserve/domain';
-import { type AdvanceStageDto, type AssignOrderDto, type CreateOrderDto, type OrderDetail, type StageResult } from '@nxserve/contracts';
+import {
+  type AdvanceStageDto,
+  type AssignOrderDto,
+  type CancelResult,
+  type CreateOrderDto,
+  type ForceTransitionDto,
+  type OrderDetail,
+  type StageResult,
+} from '@nxserve/contracts';
 import { DbService } from '../db/db.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { AppException } from '../common/app-exception.js';
@@ -175,7 +186,7 @@ export class OrdersService {
       if (!order.current_stage_code || !order.workflow_id) {
         throw new AppException('conflict', { detail: 'Order has no active workflow stage' });
       }
-      if (isTerminalStatus(order.status)) {
+      if (isTerminalStatus(order.status) || order.status === 'disputed') {
         throw new AppException('conflict', { detail: `Order is ${order.status} and cannot be advanced` });
       }
 
@@ -205,6 +216,89 @@ export class OrdersService {
         actor,
         data: { order_id: orderId, from_stage: t.fromCode, stage: t.toCode, status: t.toStatus, payment_action: t.sideEffects.paymentAction },
       });
+      return stageResult(orderId, t, stages);
+    });
+  }
+
+  /** The customer cancels. The money outcome (void or a fee) is computed and recorded
+   * here; it executes with the payment in a later increment. */
+  cancelOrder(tenantId: string, orderId: string, dto: { reason: string }, actor: Actor): Promise<CancelResult> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const order = await this.fetchOrder(client, orderId);
+      if (actor.type !== 'customer' || order.customer_id !== actor.id) {
+        throw new AppException('forbidden', { detail: 'Only the customer can cancel this order' });
+      }
+      // Completed means the service was delivered: it is captured, not cancelled for a fee.
+      if (isTerminalStatus(order.status) || order.status === 'disputed' || order.status === 'completed') {
+        throw new AppException('conflict', { detail: `Order is ${order.status} and cannot be cancelled` });
+      }
+      const moment = cancellationMoment(order.status);
+      const snap = order.pricing_snapshot ?? {};
+      const authorizedMinor = await readAuthorized(client, orderId);
+      const outcome = resolveCancellation(moment, {
+        cancellationFeeMinor: toBig(snap.cancellation_fee_minor),
+        minimumFareMinor: toBig(snap.minimum_fare_minor),
+        ...(authorizedMinor !== null ? { authorizedMinor } : {}),
+      });
+      // Validate the abort (reason required) when the workflow has started.
+      if (order.current_stage_code && order.workflow_id) {
+        const stages = await loadStages(client, order.workflow_id);
+        abortWorkflow({ stages, fromCode: order.current_stage_code, to: 'cancelled', reason: dto.reason });
+      }
+      const upd = await client.query(`UPDATE orders SET status='cancelled', updated_at=now() WHERE id=$1 AND status=$2`, [orderId, order.status]);
+      if ((upd.rowCount ?? 0) === 0) throw new AppException('conflict', { detail: 'The order changed state concurrently; reload and retry' });
+      await recordEvent(client, tenantId, orderId, order.status, 'cancelled', actor, {
+        reason: dto.reason,
+        cancellation_action: outcome.action,
+        charge_minor: outcome.chargeMinor.toString(),
+      });
+      await this.outbox.emit(client, {
+        type: 'order.cancelled',
+        tenantId,
+        actor,
+        data: { order_id: orderId, moment, action: outcome.action, charge_minor: outcome.chargeMinor.toString(), re_dispatch: outcome.reDispatch, reason: dto.reason },
+      });
+      return { order_id: orderId, status: 'cancelled', cancellation: { action: outcome.action, charge_minor: outcome.chargeMinor.toString() } };
+    });
+  }
+
+  /** Ops force transition (audited): abort to a status, or force-advance past the gates. */
+  forceTransition(tenantId: string, orderId: string, dto: ForceTransitionDto, actor: Actor): Promise<StageResult> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const order = await this.fetchOrder(client, orderId);
+      if (!order.workflow_id || !order.current_stage_code) {
+        throw new AppException('conflict', { detail: 'Order has no active workflow stage' });
+      }
+      // A disputed order is frozen until its resolution flow (docs/07 section 7);
+      // it is neither advanced nor force-aborted here.
+      if (isTerminalStatus(order.status) || order.status === 'disputed') {
+        throw new AppException('conflict', { detail: `Order is ${order.status} and cannot be transitioned` });
+      }
+      const stages = await loadStages(client, order.workflow_id);
+
+      if (dto.to_status) {
+        abortWorkflow({ stages, fromCode: order.current_stage_code, to: dto.to_status, reason: dto.reason });
+        // Lock on the pre-read status (the stage code does not change on an abort).
+        const upd = await client.query(`UPDATE orders SET status=$2, updated_at=now() WHERE id=$1 AND status=$3`, [orderId, dto.to_status, order.status]);
+        if ((upd.rowCount ?? 0) === 0) throw new AppException('conflict', { detail: 'The order changed state concurrently' });
+        // A forced cancel or fail reverses any held authorization (void, no fee); a
+        // dispute is settled by its own resolution flow (docs/07 section 7).
+        const action = dto.to_status === 'disputed' ? 'none' : 'void';
+        await recordEvent(client, tenantId, orderId, order.status, dto.to_status, actor, { forced: true, reason: dto.reason, cancellation_action: action });
+        await this.outbox.emit(client, {
+          type: dto.to_status === 'disputed' ? 'order.disputed' : 'order.cancelled',
+          tenantId,
+          actor,
+          data: { order_id: orderId, to_status: dto.to_status, action, charge_minor: '0', reason: dto.reason, forced: true },
+        });
+        return { order_id: orderId, status: dto.to_status, current_stage_code: order.current_stage_code, payment_action: 'none', tracking_active: false };
+      }
+
+      const t = advanceWorkflow({ stages, fromCode: order.current_stage_code, actor: 'ops', isOps: true, reason: dto.reason });
+      const upd = await client.query(`UPDATE orders SET status=$2, current_stage_code=$3, updated_at=now() WHERE id=$1 AND current_stage_code=$4`, [orderId, t.toStatus, t.toCode, order.current_stage_code]);
+      if ((upd.rowCount ?? 0) === 0) throw new AppException('conflict', { detail: 'The order stage changed concurrently' });
+      await recordEvent(client, tenantId, orderId, order.status, t.toStatus, actor, { forced: true, reason: dto.reason, from_stage: t.fromCode, to_stage: t.toCode, payment_action: t.sideEffects.paymentAction });
+      await this.outbox.emit(client, { type: 'order.stage_changed', tenantId, actor, data: { order_id: orderId, from_stage: t.fromCode, stage: t.toCode, status: t.toStatus, payment_action: t.sideEffects.paymentAction, forced: true, reason: dto.reason } });
       return stageResult(orderId, t, stages);
     });
   }
@@ -317,6 +411,44 @@ async function assertRef(client: PoolClient, table: 'provider_orgs' | 'assets', 
   if ((res.rowCount ?? 0) === 0) throw new AppException('not_found', { detail: `${label} not found` });
 }
 
+/** A minor-unit string from a (possibly malformed) snapshot, 0 on anything invalid. */
+function toBig(v: string | undefined): bigint {
+  return v !== undefined && /^\d+$/.test(v) ? BigInt(v) : 0n;
+}
+
+/** The cancellation moment (docs/07 section 6), from the order's status: before a
+ * provider is assigned it is free; once assigned but not yet en route it is within
+ * the free window; en route and later incur a fee. The free-minutes timer is not
+ * enforced here (the moment is status-derived; docs/07 section 6 equates "after free
+ * minutes" with "agent en route"); a time-based window is a later refinement. */
+function cancellationMoment(status: OrderDetail['status']): CancellationMoment {
+  switch (status) {
+    case 'draft':
+    case 'quoting':
+    case 'awaiting_payment':
+    case 'dispatching':
+      return 'before_assignment';
+    case 'assigned':
+    case 'authorized':
+      return 'within_free';
+    case 'en_route':
+      return 'after_free';
+    default:
+      return 'after_arrival';
+  }
+}
+
+/** The amount authorized for the order, read from its estimate (the ceiling a
+ * cancellation fee is clamped to). */
+async function readAuthorized(client: PoolClient, orderId: string): Promise<bigint | null> {
+  const res = await client.query<{ authorized_minor: string }>(
+    `SELECT pe.authorized_minor FROM orders o JOIN price_estimates pe ON pe.id = o.price_estimate_id WHERE o.id = $1`,
+    [orderId],
+  );
+  const v = res.rows[0]?.authorized_minor;
+  return v !== undefined ? BigInt(v) : null;
+}
+
 /** True if the OTP matches the stored hash of any stop on the order. No stop has an
  * otp_hash until OTP generation ships (a later increment), so today this always fails
  * closed. When OTP generation lands this must be scoped to the stop the current stage
@@ -382,7 +514,7 @@ function stageResult(orderId: string, t: Transition, stages: readonly Stage[]): 
 
 const ORDER_SELECT = `SELECT id, reference, status, current_stage_code, customer_id, vertical_id, category_id,
   tier_id, city_id, currency, estimated_amount_minor, final_amount_minor, assigned_org_id, assigned_agent_id,
-  workflow_id, timing_type, created_at FROM orders`;
+  workflow_id, pricing_snapshot, timing_type, created_at FROM orders`;
 
 interface OrderRow {
   id: string;
@@ -391,6 +523,7 @@ interface OrderRow {
   current_stage_code: string | null;
   customer_id: string;
   workflow_id: string | null;
+  pricing_snapshot: { cancellation_fee_minor?: string; minimum_fare_minor?: string; cancellation_free_min?: number } | null;
   vertical_id: string;
   category_id: string | null;
   tier_id: string | null;

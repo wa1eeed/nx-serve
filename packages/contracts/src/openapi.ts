@@ -78,7 +78,16 @@ import {
   UpdateRateCardSchema,
   UpdateSurgeScheduleSchema,
 } from './api/pricing.js';
-import { AdvanceStageSchema, AssignOrderSchema, CreateOrderSchema, OrderDetailSchema, StageResultSchema } from './api/orders.js';
+import {
+  AdvanceStageSchema,
+  AssignOrderSchema,
+  CancelOrderSchema,
+  CancelResultSchema,
+  CreateOrderSchema,
+  ForceTransitionSchema,
+  OrderDetailSchema,
+  StageResultSchema,
+} from './api/orders.js';
 
 extendZodWithOpenApi(z);
 
@@ -859,6 +868,20 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     },
   });
   registry.registerPath({
+    method: 'post',
+    path: '/orders/{id}/cancel',
+    tags: ['Orders'],
+    summary: 'Cancel an order (the owning customer); the money outcome is recorded for the payment',
+    security: [{ bearerAuth: [] }],
+    request: { params: z.object({ id: z.string().uuid() }), body: jsonBody(CancelOrderSchema) },
+    responses: {
+      200: jsonResponse('Cancellation', CancelResultSchema),
+      403: problemResponse('Not the owning customer'),
+      404: problemResponse('Order not found'),
+      409: problemResponse('Order cannot be cancelled'),
+    },
+  });
+  registry.registerPath({
     method: 'get',
     path: '/admin/orders/{id}',
     tags: ['Orders admin'],
@@ -879,6 +902,20 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
       403: problemResponse('Permission denied'),
       404: problemResponse('Order, provider or agent not found'),
       409: problemResponse('Order is not awaiting dispatch, or the agent does not match the provider'),
+    },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/orders/{id}/force',
+    tags: ['Orders admin'],
+    summary: 'Force a transition with an audited reason: abort to a status, or advance (ops, orders.dispatch)',
+    security: [{ bearerAuth: [] }],
+    request: { params: z.object({ id: z.string().uuid() }), body: jsonBody(ForceTransitionSchema) },
+    responses: {
+      200: jsonResponse('Stage result', StageResultSchema),
+      403: problemResponse('Permission denied'),
+      404: problemResponse('Order not found'),
+      409: problemResponse('No active workflow stage, or already terminal'),
     },
   });
 

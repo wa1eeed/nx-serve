@@ -170,4 +170,45 @@ describe.skipIf(!enabled)('orders workflow (e2e)', () => {
     const orderId = await createOrder();
     expect((await call('GET', `/v1/admin/orders/${orderId}`, { token: agentToken })).status).toBe(403);
   });
+
+  it('lets the customer cancel before assignment with no charge', async () => {
+    const orderId = await createOrder();
+    const res = await call('POST', `/v1/orders/${orderId}/cancel`, { token: customerToken, body: { reason: 'changed my mind' } });
+    expect(res.status).toBe(200);
+    const c = res.body as { status: string; cancellation: { action: string } };
+    expect(c.status).toBe('cancelled');
+    expect(c.cancellation.action).toBe('none'); // nothing authorized before assignment
+  });
+
+  it('voids a cancellation within the free window after assignment', async () => {
+    const orderId = await createOrder();
+    await call('POST', `/v1/admin/orders/${orderId}/assign`, { token: staffToken, body: { org_id: orgId, agent_id: agentId } });
+    const res = await call('POST', `/v1/orders/${orderId}/cancel`, { token: customerToken, body: { reason: 'no longer needed' } });
+    expect(res.status).toBe(200);
+    expect((res.body as { cancellation: { action: string } }).cancellation.action).toBe('void');
+  });
+
+  it('lets ops force-advance past the proof gates to completion', async () => {
+    const orderId = await createOrder();
+    await call('POST', `/v1/admin/orders/${orderId}/assign`, { token: staffToken, body: { org_id: orgId, agent_id: agentId } });
+    let stage = 'accepted';
+    for (let i = 0; i < 5; i++) {
+      const res = await call('POST', `/v1/admin/orders/${orderId}/force`, { token: staffToken, body: { reason: 'ops override' } });
+      expect(res.status).toBe(200);
+      stage = (res.body as { current_stage_code: string }).current_stage_code;
+    }
+    expect(stage).toBe('delivered');
+    expect((await call('GET', `/v1/admin/orders/${orderId}`, { token: staffToken })).body?.['status']).toBe('completed');
+    // A completed order was delivered: it cannot be cancelled for a fee.
+    expect((await call('POST', `/v1/orders/${orderId}/cancel`, { token: customerToken, body: { reason: 'too late' } })).status).toBe(409);
+  });
+
+  it('lets ops force-abort an order with a reason, and requires the reason', async () => {
+    const orderId = await createOrder();
+    await call('POST', `/v1/admin/orders/${orderId}/assign`, { token: staffToken, body: { org_id: orgId, agent_id: agentId } });
+    expect((await call('POST', `/v1/admin/orders/${orderId}/force`, { token: staffToken, body: { to_status: 'failed' } })).status).toBe(422); // reason required
+    const res = await call('POST', `/v1/admin/orders/${orderId}/force`, { token: staffToken, body: { to_status: 'failed', reason: 'provider unavailable' } });
+    expect(res.status).toBe(200);
+    expect((res.body as { status: string }).status).toBe('failed');
+  });
 });
