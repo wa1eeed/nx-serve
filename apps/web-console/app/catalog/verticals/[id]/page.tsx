@@ -49,6 +49,7 @@ export default function VerticalDetailPage({ params }: { params: Promise<{ id: s
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
         <PrimaryButton onClick={() => router.push(`/catalog/verticals/${id}/edit`)}>{t('action.edit')}</PrimaryButton>
+        <GhostButton onClick={() => router.push(`/catalog/verticals/${id}/workflow`)}>{t('nav.workflow')}</GhostButton>
         <GhostButton onClick={() => router.push(`/catalog/verticals/${id}/form`)}>{t('verticals.preview')}</GhostButton>
         <GhostButton onClick={() => remove('vertical', id)}>{t('action.delete')}</GhostButton>
       </div>

@@ -51,3 +51,26 @@ export interface FieldDetail {
   is_active: boolean;
   version: number;
 }
+
+export interface StageDetail {
+  id: string;
+  workflow_id: string;
+  code: string;
+  label: TranslatableText;
+  maps_to: string;
+  sort_order: number;
+  actor: string;
+  tracking_active: boolean;
+  requires: Record<string, unknown>;
+  payment_action: string;
+  notify: Record<string, unknown>;
+  sla_minutes: number | null;
+}
+
+export interface WorkflowDetail {
+  id: string;
+  name: TranslatableText;
+  version: number;
+  is_active: boolean;
+  stages: StageDetail[];
+}

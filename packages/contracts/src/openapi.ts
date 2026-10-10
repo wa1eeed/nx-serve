@@ -10,10 +10,17 @@ import {
   CategoryDetailSchema,
   CreateCategorySchema,
   CreateFieldSchema,
+  CreateStageSchema,
   CreateVerticalSchema,
+  CreateWorkflowSchema,
   FieldDetailSchema,
   FieldResponseSchema,
   FormSchemaSchema,
+  ReorderSchema,
+  StageDetailSchema,
+  UpdateStageSchema,
+  UpdateWorkflowSchema,
+  WorkflowDetailSchema,
   HealthResponseSchema,
   MeResponseSchema,
   MfaVerifySchema,
@@ -285,6 +292,79 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     security: adminSec,
     request: idParam,
     responses: { 200: jsonResponse('Deactivated', OkStatusSchema), 404: problemResponse('Not found') },
+  });
+
+  // Workflow and stages (one workflow per vertical)
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/verticals/{verticalId}/workflow',
+    tags: ['Catalog admin'],
+    summary: 'The order workflow and its ordered stages for a vertical',
+    security: adminSec,
+    request: { params: z.object({ verticalId: uuid }) },
+    responses: { 200: jsonResponse('Workflow', WorkflowDetailSchema), 404: problemResponse('No workflow yet') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/verticals/{verticalId}/workflow',
+    tags: ['Catalog admin'],
+    summary: 'Create and link a workflow for a vertical that has none',
+    security: adminSec,
+    request: { params: z.object({ verticalId: uuid }), body: jsonBody(CreateWorkflowSchema) },
+    responses: {
+      201: jsonResponse('Created', z.object({ id: uuid })),
+      404: problemResponse('Vertical not found'),
+      409: problemResponse('Vertical already has a workflow'),
+    },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/workflows/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Rename a workflow',
+    security: adminSec,
+    request: { ...idParam, body: jsonBody(UpdateWorkflowSchema) },
+    responses: { 200: jsonResponse('Updated', z.object({ id: uuid })), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/workflows/{workflowId}/stages',
+    tags: ['Catalog admin'],
+    summary: 'Add a stage to a workflow',
+    security: adminSec,
+    request: { params: z.object({ workflowId: uuid }), body: jsonBody(CreateStageSchema) },
+    responses: { 201: jsonResponse('Created', StageDetailSchema), 404: problemResponse('Workflow not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/workflows/{workflowId}/stages/reorder',
+    tags: ['Catalog admin'],
+    summary: 'Reorder the stages of a workflow',
+    security: adminSec,
+    request: { params: z.object({ workflowId: uuid }), body: jsonBody(ReorderSchema) },
+    responses: { 200: jsonResponse('Reordered', OkStatusSchema), 404: problemResponse('Workflow not found') },
+  });
+  registry.registerPath({
+    method: 'patch',
+    path: '/admin/stages/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Update a stage',
+    security: adminSec,
+    request: { ...idParam, body: jsonBody(UpdateStageSchema) },
+    responses: { 200: jsonResponse('Updated', StageDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'delete',
+    path: '/admin/stages/{id}',
+    tags: ['Catalog admin'],
+    summary: 'Delete a stage',
+    security: adminSec,
+    request: idParam,
+    responses: {
+      200: jsonResponse('Deleted', OkStatusSchema),
+      404: problemResponse('Not found'),
+      409: problemResponse('Stage is referenced by existing orders'),
+    },
   });
 
   registry.registerPath({

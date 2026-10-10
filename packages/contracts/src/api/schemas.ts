@@ -232,5 +232,65 @@ export const CategoryDetailSchema = z.object({
 });
 export type CategoryDetail = z.infer<typeof CategoryDetailSchema>;
 
+// --- Catalog admin: workflow and stages (docs/07, docs/25 stops and payment plans) ---
+export const OrderStatusEnum = z.enum([
+  'draft', 'quoting', 'awaiting_payment', 'dispatching', 'assigned', 'authorized',
+  'en_route', 'arrived', 'in_progress', 'completed', 'captured',
+  'cancelled', 'failed', 'disputed',
+]);
+export const StageActorEnum = z.enum(['agent', 'customer', 'system', 'ops']);
+export const PaymentActionEnum = z.enum([
+  'none', 'authorize', 'capture', 'capture_partial', 'capture_pct', 'deposit', 'supplement',
+]);
+
+export const CreateStageSchema = z.object({
+  code: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/, 'code must be snake_case'),
+  label: TranslatableTextSchema,
+  maps_to: OrderStatusEnum,
+  sort_order: z.number().int().default(0),
+  actor: StageActorEnum.default('agent'),
+  tracking_active: z.boolean().default(false),
+  requires: z.record(z.unknown()).default({}),
+  payment_action: PaymentActionEnum.default('none'),
+  notify: z.record(z.unknown()).default({}),
+  sla_minutes: z.number().int().positive().nullable().optional(),
+});
+export type CreateStageDto = z.infer<typeof CreateStageSchema>;
+export const UpdateStageSchema = CreateStageSchema.partial().omit({ code: true });
+export type UpdateStageDto = z.infer<typeof UpdateStageSchema>;
+
+export const StageDetailSchema = z.object({
+  id: z.string().uuid(),
+  workflow_id: z.string().uuid(),
+  code: z.string(),
+  label: TranslatableTextSchema,
+  maps_to: OrderStatusEnum,
+  sort_order: z.number().int(),
+  actor: StageActorEnum,
+  tracking_active: z.boolean(),
+  requires: z.record(z.unknown()),
+  payment_action: PaymentActionEnum,
+  notify: z.record(z.unknown()),
+  sla_minutes: z.number().int().nullable(),
+});
+export type StageDetail = z.infer<typeof StageDetailSchema>;
+
+export const CreateWorkflowSchema = z.object({ name: TranslatableTextSchema });
+export type CreateWorkflowDto = z.infer<typeof CreateWorkflowSchema>;
+export const UpdateWorkflowSchema = z.object({ name: TranslatableTextSchema });
+export type UpdateWorkflowDto = z.infer<typeof UpdateWorkflowSchema>;
+
+export const WorkflowDetailSchema = z.object({
+  id: z.string().uuid(),
+  name: TranslatableTextSchema,
+  version: z.number().int(),
+  is_active: z.boolean(),
+  stages: z.array(StageDetailSchema),
+});
+export type WorkflowDetail = z.infer<typeof WorkflowDetailSchema>;
+
+export const ReorderSchema = z.object({ order: z.array(z.string().uuid()).min(1) });
+export type ReorderDto = z.infer<typeof ReorderSchema>;
+
 // Re-export shared building blocks so the OpenAPI registry can reference them.
 export { MoneySchema, TranslatableTextSchema };

@@ -5,9 +5,11 @@ import { CatalogAdminController } from './catalog-admin.controller.js';
 import { CatalogAdminService } from './catalog-admin.service.js';
 import { TemplateController } from './template.controller.js';
 import { TemplateInstallService } from './template-install.service.js';
+import { WorkflowAdminController } from './workflow-admin.controller.js';
+import { WorkflowAdminService } from './workflow-admin.service.js';
 
 @Module({
-  controllers: [CatalogController, CatalogAdminController, TemplateController],
-  providers: [CatalogService, CatalogAdminService, TemplateInstallService],
+  controllers: [CatalogController, CatalogAdminController, TemplateController, WorkflowAdminController],
+  providers: [CatalogService, CatalogAdminService, TemplateInstallService, WorkflowAdminService],
 })
 export class CatalogModule {}

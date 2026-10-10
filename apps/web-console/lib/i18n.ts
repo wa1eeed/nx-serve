@@ -125,6 +125,32 @@ export const MESSAGES: Dict = {
   },
   'delete.confirm_category': { en: 'Deactivate this category?', ar: 'تعطيل هذه الفئة؟' },
   'delete.confirm_field': { en: 'Remove this field from the order form?', ar: 'إزالة هذا الحقل من نموذج الطلب؟' },
+  // --- Workflow and stages ---
+  'nav.workflow': { en: 'Workflow', ar: 'مسار العمل' },
+  'workflow.title': { en: 'Order workflow', ar: 'مسار عمل الطلب' },
+  'workflow.intro': {
+    en: 'The ordered stages an order moves through, each mapped to a core status, with tracking and payment actions.',
+    ar: 'المراحل المرتبة التي يمر بها الطلب، كل مرحلة مرتبطة بحالة أساسية، مع التتبع وإجراءات الدفع.',
+  },
+  'workflow.none': { en: 'This vertical has no workflow yet. Create one to define its stages.', ar: 'لا يوجد مسار عمل لهذا القطاع بعد. أنشئ واحداً لتعريف مراحله.' },
+  'workflow.create': { en: 'Create workflow', ar: 'إنشاء مسار العمل' },
+  'workflow.name_en': { en: 'Workflow name (English)', ar: 'اسم المسار (إنجليزي)' },
+  'workflow.name_ar': { en: 'Workflow name (Arabic)', ar: 'اسم المسار (عربي)' },
+  'workflow.rename': { en: 'Rename', ar: 'إعادة تسمية' },
+  'workflow.add_stage': { en: 'Add stage', ar: 'إضافة مرحلة' },
+  'workflow.no_stages': { en: 'No stages yet.', ar: 'لا توجد مراحل بعد.' },
+  'workflow.move_up': { en: 'Move up', ar: 'لأعلى' },
+  'workflow.move_down': { en: 'Move down', ar: 'لأسفل' },
+  'stage.new_title': { en: 'New stage', ar: 'مرحلة جديدة' },
+  'stage.edit_title': { en: 'Edit stage', ar: 'تعديل المرحلة' },
+  'stage.maps_to': { en: 'Core status', ar: 'الحالة الأساسية' },
+  'stage.actor': { en: 'Actor', ar: 'المنفّذ' },
+  'stage.tracking_active': { en: 'Live tracking active', ar: 'التتبع الحيّ مفعّل' },
+  'stage.payment_action': { en: 'Payment action', ar: 'إجراء الدفع' },
+  'stage.sla_minutes': { en: 'SLA minutes (optional)', ar: 'دقائق مستوى الخدمة (اختياري)' },
+  'stage.requires': { en: 'Requirements (JSON, optional)', ar: 'المتطلبات (JSON، اختياري)' },
+  'stage.requires_invalid': { en: 'Requirements must be valid JSON.', ar: 'يجب أن تكون المتطلبات JSON صالحاً.' },
+  'delete.confirm_stage': { en: 'Delete this stage?', ar: 'حذف هذه المرحلة؟' },
 };
 
 export function translate(locale: Locale, key: string): string {

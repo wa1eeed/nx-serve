@@ -51,6 +51,18 @@ export function TextInput(props: {
   );
 }
 
+export function TextArea(props: { value: string; onChange: (v: string) => void; rows?: number; placeholder?: string }): ReactNode {
+  return (
+    <textarea
+      style={{ ...controlStyle, fontFamily: 'var(--nx-font-mono, monospace)', resize: 'vertical' }}
+      rows={props.rows ?? 3}
+      value={props.value}
+      placeholder={props.placeholder}
+      onChange={(e) => props.onChange(e.target.value)}
+    />
+  );
+}
+
 export function SelectInput(props: {
   value: string;
   onChange: (v: string) => void;
