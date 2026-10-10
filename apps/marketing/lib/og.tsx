@@ -1,11 +1,14 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
+import type { Locale } from './i18n';
 
 /**
  * Branded Open Graph / Twitter card generator (docs/22 section 4). Rendered with
- * next/og (satori), which does not resolve CSS variables or ship an Arabic font,
- * so colors are the design-token hex values and the card text is the Latin brand
- * plus the English title. The localized og:title and og:description still come
- * from each page's metadata.
+ * next/og (satori). It embeds IBM Plex Sans Arabic (the design-system font, which
+ * also covers Latin), so the card shows the title in the page locale, Arabic
+ * included. Colors are the design-token hex values since satori does not resolve
+ * CSS variables.
  */
 
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -17,10 +20,32 @@ const C = {
   muted: '#9a9aa6',
   primary: '#6c6cf0',
   accent: '#c7d2fe',
-  border: '#23232b',
 };
 
-export function renderOg({ title, kicker }: { title: string; kicker?: string }): ImageResponse {
+const FAMILY = 'IBM Plex Sans Arabic';
+
+// Read once at module load. Every OG image is prerendered (all locales and slugs
+// are in generateStaticParams), so this runs at build time with the app as cwd.
+const fontDir = join(process.cwd(), 'assets', 'fonts');
+const fontRegular = readFileSync(join(fontDir, 'IBMPlexSansArabic-Regular.ttf'));
+const fontBold = readFileSync(join(fontDir, 'IBMPlexSansArabic-Bold.ttf'));
+
+const TAGLINE: Record<Locale, string> = {
+  ar: 'منصة خدمات ميدانية بعلامتك الخاصة، السعودية',
+  en: 'White-label field services platform, Saudi Arabia',
+};
+
+export function renderOg({
+  title,
+  kicker,
+  locale,
+}: {
+  title: string;
+  kicker?: string;
+  locale: Locale;
+}): ImageResponse {
+  const rtl = locale === 'ar';
+
   return new ImageResponse(
     (
       <div
@@ -33,27 +58,36 @@ export function renderOg({ title, kicker }: { title: string; kicker?: string }):
           background: C.bg,
           color: C.fg,
           padding: 72,
-          fontFamily: 'sans-serif',
+          fontFamily: FAMILY,
+          direction: rtl ? 'rtl' : 'ltr',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: rtl ? 'flex-end' : 'flex-start' }}>
           <div style={{ width: 22, height: 22, borderRadius: 6, background: C.primary }} />
-          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5 }}>NX Serve</div>
+          <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: -0.5 }}>NX Serve</div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: rtl ? 'flex-end' : 'flex-start', gap: 18 }}>
           {kicker ? (
-            <div style={{ fontSize: 28, color: C.accent, textTransform: 'uppercase', letterSpacing: 2 }}>{kicker}</div>
+            <div style={{ fontSize: 28, color: C.accent, letterSpacing: rtl ? 0 : 2 }}>{kicker}</div>
           ) : null}
-          <div style={{ fontSize: 66, fontWeight: 800, lineHeight: 1.1, maxWidth: 980 }}>{title}</div>
+          <div style={{ fontSize: 66, fontWeight: 700, lineHeight: 1.15, maxWidth: 1000, textAlign: rtl ? 'right' : 'left' }}>
+            {title}
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 26, color: C.muted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 26, color: C.muted, justifyContent: rtl ? 'flex-end' : 'flex-start' }}>
           <div style={{ width: 56, height: 4, background: C.primary, borderRadius: 2 }} />
-          White-label field services platform, Saudi Arabia
+          {TAGLINE[locale]}
         </div>
       </div>
     ),
-    { ...OG_SIZE },
+    {
+      ...OG_SIZE,
+      fonts: [
+        { name: FAMILY, data: fontRegular, weight: 400, style: 'normal' },
+        { name: FAMILY, data: fontBold, weight: 700, style: 'normal' },
+      ],
+    },
   );
 }
