@@ -92,6 +92,28 @@ describe('OpenAPI document', () => {
   });
 });
 
+describe('template payload', () => {
+  it('parses a minimal payload and applies defaults', async () => {
+    const { TemplatePayloadSchema } = await import('./api/template.js');
+    const parsed = TemplatePayloadSchema.parse({
+      vertical: { code: 'towing', name: { en: 'Towing' }, default_fulfillment: 'point_to_point', default_tracking: 'full_trip' },
+      workflow: { name: { en: 'wf' }, stages: [{ code: 'done', label: { en: 'Done' }, maps_to: 'completed', sort_order: 1 }] },
+    });
+    expect(parsed.categories).toEqual([]);
+    expect(parsed.tiers).toEqual([]);
+    expect(parsed.workflow.stages[0]?.payment_action).toBe('none');
+  });
+
+  it('rejects an invalid fulfillment mode', async () => {
+    const { TemplatePayloadSchema } = await import('./api/template.js');
+    const r = TemplatePayloadSchema.safeParse({
+      vertical: { code: 'x', name: { en: 'x' }, default_fulfillment: 'flying', default_tracking: 'none' },
+      workflow: { name: { en: 'w' }, stages: [] },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
 describe('realtime room routing', () => {
   it('always targets tenant ops and adds entity rooms present in the event', () => {
     const rooms = roomsForEvent({

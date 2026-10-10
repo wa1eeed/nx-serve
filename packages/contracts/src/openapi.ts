@@ -121,6 +121,19 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
 
   registry.registerPath({
     method: 'post',
+    path: '/admin/templates/{code}/install',
+    tags: ['Catalog'],
+    summary: 'Install a published template into the tenant as an editable copy',
+    security: [{ bearerAuth: [] }],
+    responses: {
+      201: jsonResponse('Installed', z.object({ vertical_id: z.string().uuid() })),
+      404: problemResponse('Template not found'),
+      409: problemResponse('Template already installed'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
     path: '/auth/otp/request',
     tags: ['Auth'],
     summary: 'Request a phone OTP for a customer or agent',

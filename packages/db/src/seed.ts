@@ -1,5 +1,7 @@
 import type pg from 'pg';
 import { uuidv7 } from '@nxserve/domain';
+import { applyTemplate } from './templates/install.js';
+import { TOWING_TEMPLATE } from './templates/towing.js';
 
 /**
  * Seeds reference and demo data so the full towing scenario can run locally.
@@ -77,7 +79,7 @@ export async function runSeed(client: pg.ClientBase, options: SeedOptions = {}):
     await client.query(
       `INSERT INTO service_templates (id, code, name, description, payload, version, is_published)
        VALUES ($1, 'towing', $2::jsonb, $3::jsonb, $4::jsonb, 1, true)`,
-      [towingTemplate, j({ en: 'Towing', ar: 'سطحات' }), j({ en: 'Vehicle towing', ar: 'سحب المركبات' }), j({ tiers: ['flatbed_std'] })],
+      [towingTemplate, j({ en: 'Towing', ar: 'سطحات' }), j({ en: 'Vehicle towing', ar: 'سحب المركبات' }), j(TOWING_TEMPLATE)],
     );
     const modTowing = uuidv7();
     const modTracking = uuidv7();
@@ -95,8 +97,9 @@ export async function runSeed(client: pg.ClientBase, options: SeedOptions = {}):
       [j({ en: 'Max providers', ar: 'حد المزودين' }), j({ en: 'Max agents', ar: 'حد المنفذين' }), j({ en: 'Orders per month', ar: 'طلبات شهرياً' })],
     );
     for (const [code] of [
-      ['orders.view'], ['orders.dispatch'], ['pricing.edit'], ['pricing.approve'],
-      ['providers.approve'], ['finance.view'], ['apps.build'], ['api_keys.manage'], ['users.manage'],
+      ['catalog.view'], ['catalog.manage'], ['orders.view'], ['orders.dispatch'],
+      ['pricing.edit'], ['pricing.approve'], ['providers.approve'], ['finance.view'],
+      ['apps.build'], ['api_keys.manage'], ['users.manage'],
     ] as const) {
       await client.query(`INSERT INTO permissions (code) VALUES ($1)`, [code]);
     }
@@ -183,53 +186,14 @@ export async function runSeed(client: pg.ClientBase, options: SeedOptions = {}):
       [uuidv7(), tenantDemo],
     );
 
-    // ---------------- Demo towing configuration (template installed) ----------------
-    const wf = uuidv7();
-    await client.query(`INSERT INTO workflow_definitions (id, tenant_id, name) VALUES ($1, $2, $3::jsonb)`, [
-      wf, tenantDemo, j({ en: 'Towing workflow', ar: 'سير عمل السطحة' }),
-    ]);
-    const stages: [string, string, string, string, number, boolean, string][] = [
-      ['accepted', 'Accepted', 'تم القبول', 'assigned', 1, false, 'authorize'],
-      ['heading_to_pickup', 'Heading to pickup', 'في الطريق للاستلام', 'en_route', 2, true, 'none'],
-      ['arrived_pickup', 'Arrived at pickup', 'وصل نقطة الاستلام', 'arrived', 3, false, 'none'],
-      ['loading', 'Loading', 'جارٍ التحميل', 'in_progress', 4, false, 'none'],
-      ['heading_to_dropoff', 'Heading to drop-off', 'في الطريق للتسليم', 'in_progress', 5, true, 'none'],
-      ['delivered', 'Delivered', 'تم التسليم', 'completed', 6, false, 'capture'],
-    ];
-    for (const [code, en, ar, mapsTo, order, tracking, action] of stages) {
-      await client.query(
-        `INSERT INTO workflow_stages (id, tenant_id, workflow_id, code, label, maps_to, sort_order, tracking_active, payment_action)
-         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9)`,
-        [uuidv7(), tenantDemo, wf, code, j({ en, ar }), mapsTo, order, tracking, action],
-      );
-    }
-
-    const vertTowing = uuidv7();
-    await client.query(
-      `INSERT INTO verticals (id, tenant_id, code, name, default_fulfillment, default_tracking, workflow_id)
-       VALUES ($1, $2, 'towing', $3::jsonb, 'point_to_point', 'full_trip', $4)`,
-      [vertTowing, tenantDemo, j({ en: 'Towing', ar: 'سطحات' }), wf],
-    );
-    const catLight = uuidv7();
-    await client.query(
-      `INSERT INTO categories (id, tenant_id, vertical_id, code, name) VALUES ($1, $2, $3, 'light_vehicles', $4::jsonb)`,
-      [catLight, tenantDemo, vertTowing, j({ en: 'Light vehicles', ar: 'مركبات خفيفة' })],
-    );
+    // ---------------- Demo towing configuration: install the template ----------------
+    const install = await applyTemplate(client, tenantDemo, TOWING_TEMPLATE);
+    const vertTowing = install.verticalId;
+    const catLight = install.categoryIds['light_vehicles'];
+    const tierFlatbed = install.tierIds['flatbed_std'];
     await client.query(
       `INSERT INTO tenant_template_installs (id, tenant_id, template_id, version, vertical_id) VALUES ($1, $2, $3, 1, $4)`,
       [uuidv7(), tenantDemo, towingTemplate, vertTowing],
-    );
-
-    const planAuthCap = uuidv7();
-    await client.query(
-      `INSERT INTO payment_plans (id, tenant_id, code, kind) VALUES ($1, $2, 'authorize_capture', 'authorize_capture')`,
-      [planAuthCap, tenantDemo],
-    );
-    const tierFlatbed = uuidv7();
-    await client.query(
-      `INSERT INTO service_tiers (id, tenant_id, vertical_id, category_id, code, name, pricing_mode, payment_plan_id, max_stops)
-       VALUES ($1, $2, $3, $4, 'flatbed_std', $5::jsonb, 'upfront', $6, 2)`,
-      [tierFlatbed, tenantDemo, vertTowing, catLight, j({ en: 'Standard flatbed', ar: 'سطحة عادية' }), planAuthCap],
     );
 
     const classEconomy = uuidv7();
