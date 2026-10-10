@@ -236,8 +236,11 @@ export class FakePaymentGateway implements PaymentGateway {
   }
 
   verifyWebhook(input: WebhookVerifyInput): boolean {
-    if (input.allowedIps && input.sourceIp && !input.allowedIps.includes(input.sourceIp)) {
-      return false;
+    // Fail closed: when an allowlist is configured, an unknown source IP is rejected.
+    if (input.allowedIps && input.allowedIps.length > 0) {
+      if (!input.sourceIp || !input.allowedIps.includes(input.sourceIp)) {
+        return false;
+      }
     }
     return constantTimeEquals(input.sharedSecret, input.receivedSecret);
   }

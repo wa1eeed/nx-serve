@@ -137,10 +137,13 @@ export class ProvidersService {
   // --- Self service for the authenticated owner agent ---
 
   async getMe(tenantId: string, agentId: string): Promise<{ org: ProviderOrgDetail; onboarding: OnboardingStatus }> {
-    const org = await this.db.withTenant(tenantId, async (client) => {
-      const ctx = await this.loadAgentContext(client, agentId);
-      return this.loadOrg(client, ctx.orgId);
-    });
+    const orgId = await this.db.withTenant(tenantId, async (client) => (await this.loadAgentContext(client, agentId)).orgId);
+    return this.onboardingForOrg(tenantId, orgId);
+  }
+
+  /** The org and its onboarding readiness, reused by the admin review screens. */
+  async onboardingForOrg(tenantId: string, orgId: string): Promise<{ org: ProviderOrgDetail; onboarding: OnboardingStatus }> {
+    const org = await this.db.withTenant(tenantId, (client) => this.loadOrg(client, orgId));
     // The identity check is a network call: resolve it with no transaction open,
     // then compute the rest in a short transaction (no IO inside a withTenant tx).
     const identity = await this.resolveIdentity(org.nx_verify_ref);
@@ -465,9 +468,9 @@ export class ProvidersService {
 
 // --- Row shapes and selects (kept close to the detail contracts) ---
 
-const ORG_SELECT = `SELECT id, entity_type, legal_name, display_name, registration_no, city_id,
+export const ORG_SELECT = `SELECT id, entity_type, legal_name, display_name, registration_no, city_id,
   moyasar_merchant_id, moyasar_status, nx_verify_ref, rating, is_active FROM provider_orgs`;
-interface OrgRow {
+export interface OrgRow {
   id: string;
   entity_type: ProviderOrgDetail['entity_type'];
   legal_name: string;
@@ -480,7 +483,7 @@ interface OrgRow {
   rating: string | null;
   is_active: boolean;
 }
-function toOrgDetail(r: OrgRow): ProviderOrgDetail {
+export function toOrgDetail(r: OrgRow): ProviderOrgDetail {
   return {
     id: r.id,
     entity_type: r.entity_type,
@@ -496,8 +499,8 @@ function toOrgDetail(r: OrgRow): ProviderOrgDetail {
   };
 }
 
-const AGENT_SELECT = `SELECT id, org_id, full_name, mobile, role, rating, is_active FROM provider_agents`;
-interface AgentRow {
+export const AGENT_SELECT = `SELECT id, org_id, full_name, mobile, role, rating, is_active FROM provider_agents`;
+export interface AgentRow {
   id: string;
   org_id: string;
   full_name: string;
@@ -506,7 +509,7 @@ interface AgentRow {
   rating: string | null;
   is_active: boolean;
 }
-function toAgentDetail(r: AgentRow): AgentDetail {
+export function toAgentDetail(r: AgentRow): AgentDetail {
   return {
     id: r.id,
     org_id: r.org_id,
@@ -518,8 +521,8 @@ function toAgentDetail(r: AgentRow): AgentDetail {
   };
 }
 
-const ASSET_SELECT = `SELECT id, org_id, vertical_id, asset_type, identifier, attributes, is_active FROM assets`;
-interface AssetRow {
+export const ASSET_SELECT = `SELECT id, org_id, vertical_id, asset_type, identifier, attributes, is_active FROM assets`;
+export interface AssetRow {
   id: string;
   org_id: string;
   vertical_id: string;
@@ -528,7 +531,7 @@ interface AssetRow {
   attributes: Record<string, unknown>;
   is_active: boolean;
 }
-function toAssetDetail(r: AssetRow): AssetDetail {
+export function toAssetDetail(r: AssetRow): AssetDetail {
   return {
     id: r.id,
     org_id: r.org_id,
@@ -540,8 +543,8 @@ function toAssetDetail(r: AssetRow): AssetDetail {
   };
 }
 
-const OFFERING_SELECT = `SELECT id, org_id, vertical_id, category_id, zone_id, capabilities, status, review_notes, is_active FROM provider_offerings`;
-interface OfferingRow {
+export const OFFERING_SELECT = `SELECT id, org_id, vertical_id, category_id, zone_id, capabilities, status, review_notes, is_active FROM provider_offerings`;
+export interface OfferingRow {
   id: string;
   org_id: string;
   vertical_id: string;
@@ -552,7 +555,7 @@ interface OfferingRow {
   review_notes: string | null;
   is_active: boolean;
 }
-function toOfferingDetail(r: OfferingRow): OfferingDetail {
+export function toOfferingDetail(r: OfferingRow): OfferingDetail {
   return {
     id: r.id,
     org_id: r.org_id,
@@ -566,9 +569,9 @@ function toOfferingDetail(r: OfferingRow): OfferingDetail {
   };
 }
 
-const DOCUMENT_SELECT = `SELECT id, org_id, agent_id, asset_id, doc_type, file_url,
+export const DOCUMENT_SELECT = `SELECT id, org_id, agent_id, asset_id, doc_type, file_url,
   to_char(expires_on, 'YYYY-MM-DD') AS expires_on, verify_status, uploaded_at FROM provider_documents`;
-interface DocumentRow {
+export interface DocumentRow {
   id: string;
   org_id: string;
   agent_id: string | null;
@@ -579,7 +582,7 @@ interface DocumentRow {
   verify_status: DocumentDetail['verify_status'];
   uploaded_at: Date;
 }
-function toDocumentDetail(r: DocumentRow): DocumentDetail {
+export function toDocumentDetail(r: DocumentRow): DocumentDetail {
   return {
     id: r.id,
     org_id: r.org_id,

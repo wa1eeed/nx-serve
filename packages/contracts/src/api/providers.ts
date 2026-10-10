@@ -117,16 +117,22 @@ export type PresenceDto = z.infer<typeof PresenceSchema>;
 
 export const ReviewOfferingSchema = z.object({
   decision: z.enum(['approve', 'needs_info', 'reject']),
+  // Persisted in provider_offerings.review_notes. Probation is computed at
+  // dispatch from the order count versus a setting (Phase 4), not set here.
   notes: z.string().max(1000).optional(),
-  probation: z.boolean().optional(),
 });
 export type ReviewOfferingDto = z.infer<typeof ReviewOfferingSchema>;
 
+// provider_documents has no notes column, so a rejection reason is not persisted yet.
 export const ReviewDocumentSchema = z.object({
   decision: z.enum(['verify', 'reject']),
-  notes: z.string().max(1000).optional(),
 });
 export type ReviewDocumentDto = z.infer<typeof ReviewDocumentSchema>;
+
+export const AddGroupMemberSchema = z
+  .object({ org_id: z.string().uuid().optional(), agent_id: z.string().uuid().optional() })
+  .refine((v) => v.org_id || v.agent_id, { message: 'org_id or agent_id is required' });
+export type AddGroupMemberDto = z.infer<typeof AddGroupMemberSchema>;
 
 export const CreateProviderGroupSchema = z.object({
   vertical_id: z.string().uuid().optional(),
@@ -137,6 +143,7 @@ export type CreateProviderGroupDto = z.infer<typeof CreateProviderGroupSchema>;
 
 /** Merchant status update from the gateway webhook (minimal until Q9 confirmed). */
 export const MerchantWebhookSchema = z.object({
+  event_id: z.string().min(1),
   merchant_id: z.string().min(1),
   status: MerchantStatusSchema,
 });

@@ -18,6 +18,14 @@ export class ConfigService {
 
   readonly paymentsEnabled = (process.env.PAYMENTS_ENABLED ?? 'false') === 'true';
 
+  // Gateway webhook verification (docs/06, Q9): a shared secret plus an optional
+  // source IP allowlist. The webhook is rejected when no secret is configured.
+  readonly moyasarWebhookSecret = process.env.MOYASAR_WEBHOOK_SHARED_SECRET ?? '';
+  readonly webhookAllowedIps = (process.env.WEBHOOK_ALLOWED_IPS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   get isProduction(): boolean {
     return this.nodeEnv === 'production';
   }

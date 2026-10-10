@@ -40,18 +40,24 @@ import {
   VerticalSummarySchema,
 } from './api/schemas.js';
 import {
+  AddGroupMemberSchema,
   AgentDetailSchema,
   ApplyOfferingSchema,
   AssetDetailSchema,
   CreateAgentSchema,
   CreateAssetSchema,
+  CreateProviderGroupSchema,
   DocumentDetailSchema,
   LinkAgentAssetSchema,
+  MerchantWebhookSchema,
   OfferingDetailSchema,
   OnboardingStatusSchema,
   PresenceSchema,
+  ProviderGroupDetailSchema,
   ProviderOrgDetailSchema,
   RegisterProviderRequestSchema,
+  ReviewDocumentSchema,
+  ReviewOfferingSchema,
   UploadDocumentSchema,
 } from './api/providers.js';
 
@@ -476,6 +482,112 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     security: [{ bearerAuth: [] }],
     request: { body: jsonBody(PresenceSchema) },
     responses: { 200: jsonResponse('Updated', OkStatusSchema) },
+  });
+
+  // --- Provider administration (tenant staff; providers.approve) ---
+  const providerSec = [{ bearerAuth: [] }];
+  const providerIdParam = { params: z.object({ id: z.string().uuid() }) };
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/providers',
+    tags: ['Provider admin'],
+    summary: 'List the tenant providers',
+    security: providerSec,
+    responses: { 200: jsonResponse('Providers', z.array(ProviderOrgDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/providers/{id}',
+    tags: ['Provider admin'],
+    summary: 'A provider and its onboarding readiness',
+    security: providerSec,
+    request: providerIdParam,
+    responses: {
+      200: jsonResponse('Provider', z.object({ org: ProviderOrgDetailSchema, onboarding: OnboardingStatusSchema })),
+      404: problemResponse('Not found'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/providers/{id}/offerings',
+    tags: ['Provider admin'],
+    summary: 'A provider offerings (to review)',
+    security: providerSec,
+    request: providerIdParam,
+    responses: { 200: jsonResponse('Offerings', z.array(OfferingDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/providers/{id}/documents',
+    tags: ['Provider admin'],
+    summary: 'A provider documents (to verify)',
+    security: providerSec,
+    request: providerIdParam,
+    responses: { 200: jsonResponse('Documents', z.array(DocumentDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/offerings/{id}/review',
+    tags: ['Provider admin'],
+    summary: 'Approve, request info for, or reject an offering',
+    security: providerSec,
+    request: { ...providerIdParam, body: jsonBody(ReviewOfferingSchema) },
+    responses: { 200: jsonResponse('Offering', OfferingDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/documents/{id}/review',
+    tags: ['Provider admin'],
+    summary: 'Verify or reject a document',
+    security: providerSec,
+    request: { ...providerIdParam, body: jsonBody(ReviewDocumentSchema) },
+    responses: { 200: jsonResponse('Document', DocumentDetailSchema), 404: problemResponse('Not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/providers/{id}/merchant/refresh',
+    tags: ['Provider admin'],
+    summary: 'Pull the latest merchant status from the gateway',
+    security: providerSec,
+    request: providerIdParam,
+    responses: {
+      200: jsonResponse('Provider', ProviderOrgDetailSchema),
+      409: problemResponse('No merchant yet'),
+    },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/provider-groups',
+    tags: ['Provider admin'],
+    summary: 'Create a provider group',
+    security: providerSec,
+    request: { body: jsonBody(CreateProviderGroupSchema) },
+    responses: { 201: jsonResponse('Group', ProviderGroupDetailSchema) },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/provider-groups',
+    tags: ['Provider admin'],
+    summary: 'List provider groups',
+    security: providerSec,
+    responses: { 200: jsonResponse('Groups', z.array(ProviderGroupDetailSchema)) },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/provider-groups/{id}/members',
+    tags: ['Provider admin'],
+    summary: 'Add an org or agent to a group',
+    security: providerSec,
+    request: { ...providerIdParam, body: jsonBody(AddGroupMemberSchema) },
+    responses: { 200: jsonResponse('Added', OkStatusSchema), 404: problemResponse('Group not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/webhooks/merchant',
+    tags: ['Webhooks'],
+    summary: 'Gateway merchant status webhook (shared secret, processed exactly once)',
+    request: { body: jsonBody(MerchantWebhookSchema) },
+    responses: { 200: jsonResponse('Accepted', OkStatusSchema), 401: problemResponse('Verification failed') },
   });
 
   registry.registerPath({

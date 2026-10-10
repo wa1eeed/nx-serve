@@ -53,6 +53,10 @@ describe('FakePaymentGateway', () => {
     expect(
       gw.verifyWebhook({ sharedSecret: 's', receivedSecret: 's', sourceIp: '9.9.9.9', allowedIps: ['1.1.1.1'] }),
     ).toBe(false);
+    // Fails closed: an allowlist with an unknown (missing or empty) source IP is rejected.
+    expect(gw.verifyWebhook({ sharedSecret: 's', receivedSecret: 's', allowedIps: ['1.1.1.1'] })).toBe(false);
+    expect(gw.verifyWebhook({ sharedSecret: 's', receivedSecret: 's', sourceIp: '', allowedIps: ['1.1.1.1'] })).toBe(false);
+    expect(gw.verifyWebhook({ sharedSecret: 's', receivedSecret: 's', sourceIp: '1.1.1.1', allowedIps: ['1.1.1.1'] })).toBe(true);
     expect(constantTimeEquals('abc', 'abd')).toBe(false);
   });
 });
