@@ -78,7 +78,7 @@ import {
   UpdateRateCardSchema,
   UpdateSurgeScheduleSchema,
 } from './api/pricing.js';
-import { CreateOrderSchema, OrderDetailSchema } from './api/orders.js';
+import { AdvanceStageSchema, AssignOrderSchema, CreateOrderSchema, OrderDetailSchema, StageResultSchema } from './api/orders.js';
 
 extendZodWithOpenApi(z);
 
@@ -842,6 +842,44 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     security: [{ bearerAuth: [] }, { secretKey: [] }],
     request: { params: z.object({ id: z.string().uuid() }) },
     responses: { 200: jsonResponse('Order', OrderDetailSchema), 404: problemResponse('Order not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/orders/{id}/advance',
+    tags: ['Orders'],
+    summary: 'Advance the current workflow stage after proof (the assigned agent or the customer)',
+    security: [{ bearerAuth: [] }],
+    request: { params: z.object({ id: z.string().uuid() }), body: jsonBody(AdvanceStageSchema) },
+    responses: {
+      200: jsonResponse('Stage result', StageResultSchema),
+      403: problemResponse('Not the assigned agent or owning customer'),
+      404: problemResponse('Order not found'),
+      409: problemResponse('No active workflow stage'),
+      422: problemResponse('Proof incomplete, wrong actor, or already at the final stage'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/admin/orders/{id}',
+    tags: ['Orders admin'],
+    summary: 'Get any order in the tenant (staff, orders.view)',
+    security: [{ bearerAuth: [] }],
+    request: { params: z.object({ id: z.string().uuid() }) },
+    responses: { 200: jsonResponse('Order', OrderDetailSchema), 403: problemResponse('Permission denied'), 404: problemResponse('Order not found') },
+  });
+  registry.registerPath({
+    method: 'post',
+    path: '/admin/orders/{id}/assign',
+    tags: ['Orders admin'],
+    summary: 'Manually assign a provider and start the workflow (ops, orders.dispatch)',
+    security: [{ bearerAuth: [] }],
+    request: { params: z.object({ id: z.string().uuid() }), body: jsonBody(AssignOrderSchema) },
+    responses: {
+      200: jsonResponse('Stage result', StageResultSchema),
+      403: problemResponse('Permission denied'),
+      404: problemResponse('Order, provider or agent not found'),
+      409: problemResponse('Order is not awaiting dispatch, or the agent does not match the provider'),
+    },
   });
 
   registry.registerPath({

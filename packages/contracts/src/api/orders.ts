@@ -107,6 +107,15 @@ export const CancelOrderSchema = z.object({
 });
 export type CancelOrderDto = z.infer<typeof CancelOrderSchema>;
 
+/** Manual assignment of a provider to an order (ops), which starts the workflow.
+ * Automatic dispatch is a later increment; this is the manual dispatch mode. */
+export const AssignOrderSchema = z.object({
+  org_id: z.string().uuid(),
+  agent_id: z.string().uuid(),
+  asset_id: z.string().uuid().optional(),
+});
+export type AssignOrderDto = z.infer<typeof AssignOrderSchema>;
+
 /** Ops force transition (audited): advance to the next stage, or abort to a status. */
 export const ForceTransitionSchema = z.object({
   to_status: z.enum(['cancelled', 'failed', 'disputed']).optional(),

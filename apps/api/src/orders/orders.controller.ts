@@ -1,5 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { type CreateOrderDto, CreateOrderSchema, type OrderDetail } from '@nxserve/contracts';
+import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import {
+  type AdvanceStageDto,
+  AdvanceStageSchema,
+  type CreateOrderDto,
+  CreateOrderSchema,
+  type OrderDetail,
+  type StageResult,
+} from '@nxserve/contracts';
 import { AppException } from '../common/app-exception.js';
 import { Ctx } from '../common/decorators.js';
 import { ZodValidationPipe } from '../common/zod.pipe.js';
@@ -23,6 +30,16 @@ export class OrdersController {
   @Get(':id')
   get(@Param('id') id: string, @Ctx() ctx: RequestContext): Promise<OrderDetail> {
     return this.orders.getOrder(tenantId(ctx), id, ctx.actor);
+  }
+
+  @Post(':id/advance')
+  @HttpCode(200)
+  advance(
+    @Param('id') id: string,
+    @Ctx() ctx: RequestContext,
+    @Body(new ZodValidationPipe(AdvanceStageSchema)) body: AdvanceStageDto,
+  ): Promise<StageResult> {
+    return this.orders.advanceStage(tenantId(ctx), id, body, ctx.actor);
   }
 }
 
