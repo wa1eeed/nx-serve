@@ -1,9 +1,11 @@
 'use client';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { useApi } from '../../../lib/api';
+import { useRouter } from 'next/navigation';
+import { apiSend, useApi } from '../../../lib/api';
 import { useLocale, useT, type Locale } from '../../../lib/i18n';
 import { ErrorState, Loading, PageHeader } from '../../../components/page-parts';
+import { GhostButton, PrimaryButton, SubmitError, useSubmit } from '../../../components/forms';
 
 interface VerticalSummary {
   id: string;
@@ -21,11 +23,35 @@ function localName(name: Record<string, string>, locale: Locale): string {
 export default function VerticalsPage(): ReactNode {
   const t = useT();
   const locale = useLocale();
+  const router = useRouter();
   const state = useApi<VerticalSummary[]>('/catalog/verticals', locale);
+  const install = useSubmit();
+
+  const installTowing = (): void => {
+    if (!window.confirm(t('install.confirm'))) return;
+    void install.run(async () => {
+      await apiSend('POST', '/admin/templates/towing/install', undefined, locale);
+      window.alert(t('install.done'));
+      state.reload();
+    });
+  };
 
   return (
     <>
       <PageHeader title={t('verticals.title')} intro={t('verticals.intro')} />
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <PrimaryButton onClick={() => router.push('/catalog/verticals/new')}>{t('action.new_vertical')}</PrimaryButton>
+        <GhostButton onClick={installTowing}>
+          {install.state.status === 'pending' ? t('action.installing') : t('action.install_towing')}
+        </GhostButton>
+      </div>
+      {install.state.status === 'error' ? (
+        <div style={{ marginBottom: 16 }}>
+          <SubmitError error={install.state.error} />
+        </div>
+      ) : null}
+
       {state.status === 'loading' ? <Loading /> : null}
       {state.status === 'error' ? <ErrorState error={state.error} onRetry={state.reload} /> : null}
       {state.status === 'ready' ? (
@@ -50,9 +76,17 @@ export default function VerticalsPage(): ReactNode {
                   </td>
                   <td style={cell}>{v.is_active ? '●' : '○'}</td>
                   <td style={cell}>
-                    <Link href={`/catalog/verticals/${v.id}/form`} style={{ color: 'var(--nx-color-primary)' }}>
-                      {t('verticals.preview')}
-                    </Link>
+                    <span style={{ display: 'inline-flex', gap: 14 }}>
+                      <Link href={`/catalog/verticals/${v.id}/form`} style={linkStyle}>
+                        {t('verticals.preview')}
+                      </Link>
+                      <Link href={`/catalog/verticals/${v.id}/fields/new`} style={linkStyle}>
+                        {t('action.add_field')}
+                      </Link>
+                      <Link href={`/catalog/verticals/${v.id}/categories/new`} style={linkStyle}>
+                        {t('action.add_category')}
+                      </Link>
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -66,3 +100,4 @@ export default function VerticalsPage(): ReactNode {
 
 const cellHead = { padding: '8px 10px', fontWeight: 600 } as const;
 const cell = { padding: '10px' } as const;
+const linkStyle = { color: 'var(--nx-color-primary)', whiteSpace: 'nowrap' } as const;
