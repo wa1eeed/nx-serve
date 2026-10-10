@@ -1,5 +1,5 @@
 import type pg from 'pg';
-import { uuidv7 } from '@nxserve/domain';
+import { type CoreStatus, type PaymentAction, type Stage, type StageActor, uuidv7, validateWorkflow } from '@nxserve/domain';
 import { type TemplatePayload } from '@nxserve/contracts';
 
 /** Ids created by installing a template, keyed by their code. */
@@ -13,6 +13,26 @@ export interface InstallResult {
 }
 
 const j = (value: unknown): string => JSON.stringify(value);
+
+/** Maps a template stage (snake_case jsonb) to the engine Stage shape for validation. */
+function toEngineStage(s: TemplatePayload['workflow']['stages'][number]): Stage {
+  const r = (s.requires ?? {}) as Record<string, unknown>;
+  return {
+    code: s.code,
+    mapsTo: s.maps_to as CoreStatus,
+    sortOrder: s.sort_order,
+    actor: s.actor as StageActor,
+    trackingActive: s.tracking_active,
+    requires: {
+      ...(typeof r.photos_min === 'number' ? { photosMin: r.photos_min } : {}),
+      ...(r.otp === true ? { otp: true } : {}),
+      ...(r.signature === true ? { signature: true } : {}),
+      ...(Array.isArray(r.checklist) ? { checklist: r.checklist as string[] } : {}),
+    },
+    paymentAction: s.payment_action as PaymentAction,
+    slaMinutes: s.sla_minutes ?? null,
+  };
+}
 
 /**
  * Applies a template payload into a tenant as editable rows (docs/10 section 9).
@@ -32,6 +52,13 @@ export async function applyTemplate(
       [id, tenantId, plan.code, plan.kind, j(plan.params ?? {})],
     );
     paymentPlanIds[plan.code] = id;
+  }
+
+  // Reject a workflow the state machine could not enforce (e.g. proof on the final
+  // stage, or a capture with no proof before it), before it is ever installed.
+  const issues = validateWorkflow(payload.workflow.stages.map(toEngineStage));
+  if (issues.length > 0) {
+    throw new Error(`Invalid workflow in template: ${issues.map((i) => i.message).join('; ')}`);
   }
 
   const workflowId = uuidv7();

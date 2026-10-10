@@ -24,8 +24,12 @@
 **Towing (point_to_point, full_trip)**
 1. `accepted` (assigned, authorize) 2. `heading_to_pickup` (en_route, tracking on)
 3. `arrived_pickup` (arrived, photos_min 2) 4. `loading` (in_progress)
-5. `heading_to_dropoff` (in_progress, tracking on) 6. `delivered` (completed, OTP from receiver,
-photos_min 2, capture)
+5. `heading_to_dropoff` (in_progress, tracking on, OTP from receiver, photos_min 2) 6. `delivered`
+(completed, capture)
+
+`requires` gates leaving a stage, so the delivery proof (OTP and photos) sits on the stage before
+the capture stage. Capture, which runs on entering `delivered`, then fires only after the proof is
+given. A `requires` on a final stage can never be enforced; the workflow validator rejects it.
 
 **AC maintenance (at_customer, en_route)**
 1. `accepted` (assigned, authorize) 2. `on_the_way` (en_route, tracking on) 3. `arrived`

@@ -22,8 +22,8 @@ export const TOWING_TEMPLATE: TemplatePayload = TemplatePayloadSchema.parse({
       { code: 'heading_to_pickup', label: { en: 'Heading to pickup', ar: 'في الطريق للاستلام' }, maps_to: 'en_route', sort_order: 2, tracking_active: true },
       { code: 'arrived_pickup', label: { en: 'Arrived at pickup', ar: 'وصل نقطة الاستلام' }, maps_to: 'arrived', sort_order: 3, requires: { photos_min: 2 } },
       { code: 'loading', label: { en: 'Loading', ar: 'جارٍ التحميل' }, maps_to: 'in_progress', sort_order: 4 },
-      { code: 'heading_to_dropoff', label: { en: 'Heading to drop-off', ar: 'في الطريق للتسليم' }, maps_to: 'in_progress', sort_order: 5, tracking_active: true },
-      { code: 'delivered', label: { en: 'Delivered', ar: 'تم التسليم' }, maps_to: 'completed', sort_order: 6, requires: { photos_min: 2, otp: true }, payment_action: 'capture' },
+      { code: 'heading_to_dropoff', label: { en: 'Heading to drop-off', ar: 'في الطريق للتسليم' }, maps_to: 'in_progress', sort_order: 5, tracking_active: true, requires: { photos_min: 2, otp: true } },
+      { code: 'delivered', label: { en: 'Delivered', ar: 'تم التسليم' }, maps_to: 'completed', sort_order: 6, payment_action: 'capture' },
     ],
   },
   fields: [
