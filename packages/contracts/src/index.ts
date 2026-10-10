@@ -5,6 +5,7 @@ export * from './http.js';
 export * from './api/schemas.js';
 export * from './api/providers.js';
 export * from './api/pricing.js';
+export * from './api/orders.js';
 export * from './api/template.js';
 export * from './realtime.js';
 export { buildOpenApiDocument } from './openapi.js';

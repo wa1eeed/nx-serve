@@ -78,6 +78,7 @@ import {
   UpdateRateCardSchema,
   UpdateSurgeScheduleSchema,
 } from './api/pricing.js';
+import { CreateOrderSchema, OrderDetailSchema } from './api/orders.js';
 
 extendZodWithOpenApi(z);
 
@@ -815,6 +816,32 @@ export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31['generate
     security: adminPricing,
     request: pricingId,
     responses: { 200: jsonResponse('Deactivated', OkStatusSchema), 404: problemResponse('Not found') },
+  });
+
+  // --- Orders (docs/07) ---
+  registry.registerPath({
+    method: 'post',
+    path: '/orders',
+    tags: ['Orders'],
+    summary: 'Create an order from a stored, unexpired estimate (customer)',
+    security: [{ bearerAuth: [] }, { secretKey: [] }],
+    request: { body: jsonBody(CreateOrderSchema) },
+    responses: {
+      201: jsonResponse('Order', OrderDetailSchema),
+      403: problemResponse('A customer must place the order'),
+      404: problemResponse('Estimate not found'),
+      409: problemResponse('The estimate has expired or has no vertical'),
+      422: problemResponse('Validation failed'),
+    },
+  });
+  registry.registerPath({
+    method: 'get',
+    path: '/orders/{id}',
+    tags: ['Orders'],
+    summary: 'Get an order (the customer may read only their own)',
+    security: [{ bearerAuth: [] }, { secretKey: [] }],
+    request: { params: z.object({ id: z.string().uuid() }) },
+    responses: { 200: jsonResponse('Order', OrderDetailSchema), 404: problemResponse('Order not found') },
   });
 
   registry.registerPath({
