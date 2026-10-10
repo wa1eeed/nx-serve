@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import pg from 'pg';
@@ -56,6 +56,7 @@ describe.skipIf(!enabled)('provider onboarding (e2e)', () => {
     const headers: Record<string, string> = { host: opts.host ?? 'demo.localhost', ...(opts.headers ?? {}) };
     if (opts.token) headers.authorization = `Bearer ${opts.token}`;
     if (opts.body !== undefined) headers['content-type'] = 'application/json';
+    if (method === 'POST' && !headers['idempotency-key']) headers['idempotency-key'] = randomUUID();
     const res = await app.inject({
       method,
       url,

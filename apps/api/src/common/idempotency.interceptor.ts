@@ -33,8 +33,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
       body?: unknown;
     }>();
     const context = getContext();
-    // Auth endpoints are not idempotency scoped (they mint their own tokens).
-    if (req.method !== 'POST' || !context?.tenantId || req.url.includes('/auth/')) {
+    // Auth endpoints mint their own tokens; inbound webhooks carry their own
+    // exactly-once key (webhook_events) and cannot send an Idempotency-Key. Neither
+    // is idempotency-key scoped.
+    if (req.method !== 'POST' || !context?.tenantId || req.url.includes('/auth/') || req.url.includes('/webhooks/')) {
       return next.handle();
     }
 

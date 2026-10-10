@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -55,6 +56,7 @@ describe.skipIf(!enabled)('pricing maker-checker and estimate (e2e)', () => {
     const headers: Record<string, string> = { host: 'demo.localhost' };
     if (opts.token) headers.authorization = `Bearer ${opts.token}`;
     if (opts.body !== undefined) headers['content-type'] = 'application/json';
+    if (method === 'POST') headers['idempotency-key'] = randomUUID(); // required on tenant POSTs
     const res = await app.inject({
       method,
       url,
