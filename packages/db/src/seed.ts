@@ -97,7 +97,7 @@ export async function runSeed(client: pg.ClientBase, options: SeedOptions = {}):
       [j({ en: 'Max providers', ar: 'حد المزودين' }), j({ en: 'Max agents', ar: 'حد المنفذين' }), j({ en: 'Orders per month', ar: 'طلبات شهرياً' })],
     );
     for (const [code] of [
-      ['catalog.view'], ['catalog.manage'], ['orders.view'], ['orders.dispatch'],
+      ['catalog.view'], ['catalog.manage'], ['settings.manage'], ['orders.view'], ['orders.dispatch'],
       ['pricing.edit'], ['pricing.approve'], ['providers.approve'], ['finance.view'],
       ['apps.build'], ['api_keys.manage'], ['users.manage'],
     ] as const) {

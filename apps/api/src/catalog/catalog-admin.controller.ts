@@ -1,9 +1,17 @@
 import { Body, Controller, Delete, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import {
+  type CreateCategoryDto,
+  CreateCategorySchema,
   type CreateFieldDto,
   CreateFieldSchema,
+  type CreateVerticalDto,
+  CreateVerticalSchema,
+  type UpdateCategoryDto,
+  UpdateCategorySchema,
   type UpdateFieldDto,
   UpdateFieldSchema,
+  type UpdateVerticalDto,
+  UpdateVerticalSchema,
 } from '@nxserve/contracts';
 import { AppException } from '../common/app-exception.js';
 import { Ctx, RequirePermission } from '../common/decorators.js';
@@ -15,6 +23,41 @@ import { CatalogAdminService, type FieldResponse } from './catalog-admin.service
 @RequirePermission('catalog.manage')
 export class CatalogAdminController {
   constructor(private readonly admin: CatalogAdminService) {}
+
+  @Post('verticals')
+  createVertical(
+    @Ctx() ctx: RequestContext,
+    @Body(new ZodValidationPipe(CreateVerticalSchema)) body: CreateVerticalDto,
+  ): Promise<{ id: string; code: string }> {
+    return this.admin.createVertical(tenantId(ctx), body, ctx.actor);
+  }
+
+  @Patch('verticals/:id')
+  updateVertical(
+    @Param('id') id: string,
+    @Ctx() ctx: RequestContext,
+    @Body(new ZodValidationPipe(UpdateVerticalSchema)) body: UpdateVerticalDto,
+  ): Promise<{ id: string }> {
+    return this.admin.updateVertical(tenantId(ctx), id, body, ctx.actor);
+  }
+
+  @Post('verticals/:verticalId/categories')
+  createCategory(
+    @Param('verticalId') verticalId: string,
+    @Ctx() ctx: RequestContext,
+    @Body(new ZodValidationPipe(CreateCategorySchema)) body: CreateCategoryDto,
+  ): Promise<{ id: string; code: string }> {
+    return this.admin.createCategory(tenantId(ctx), verticalId, body, ctx.actor);
+  }
+
+  @Patch('categories/:id')
+  updateCategory(
+    @Param('id') id: string,
+    @Ctx() ctx: RequestContext,
+    @Body(new ZodValidationPipe(UpdateCategorySchema)) body: UpdateCategoryDto,
+  ): Promise<{ id: string }> {
+    return this.admin.updateCategory(tenantId(ctx), id, body, ctx.actor);
+  }
 
   @Post('verticals/:verticalId/fields')
   createField(

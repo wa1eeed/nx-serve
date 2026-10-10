@@ -41,6 +41,12 @@ export class EntitlementsService {
     return effective.modules;
   }
 
+  /** Effective modules and limits for the tenant (uncached; for the read endpoint). */
+  async getEffective(tenantId: string): Promise<{ modules: string[]; limits: Record<string, number | null> }> {
+    const eff = await this.load(tenantId);
+    return { modules: [...eff.modules], limits: eff.limits };
+  }
+
   async invalidate(tenantId: string): Promise<void> {
     try {
       await this.redis.client.del(`nx:ent:${tenantId}`);

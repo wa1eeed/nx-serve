@@ -10,6 +10,10 @@ import { BootstrapModule } from './bootstrap/bootstrap.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AuthzModule } from './authz/authz.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
+import { GeoModule } from './geo/geo.module.js';
+import { VehiclesModule } from './vehicles/vehicles.module.js';
+import { SettingsModule } from './settings/settings.module.js';
+import { RbacModule } from './rbac/rbac.module.js';
 import { ContextMiddleware } from './context/context.middleware.js';
 import { ProblemExceptionFilter } from './common/problem.filter.js';
 import { TenancyGuard } from './tenancy/tenancy.guard.js';
@@ -31,6 +35,10 @@ import { AuditInterceptor } from './audit/audit.interceptor.js';
     AuthModule,
     AuthzModule,
     CatalogModule,
+    GeoModule,
+    VehiclesModule,
+    SettingsModule,
+    RbacModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemExceptionFilter },

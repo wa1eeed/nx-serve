@@ -149,5 +149,36 @@ export const FieldResponseSchema = z.object({
   version: z.number().int(),
 });
 
+// --- Settings ---
+export const UpsertSettingSchema = z.object({ value: z.unknown() });
+export type UpsertSettingDto = z.infer<typeof UpsertSettingSchema>;
+
+// --- Catalog admin: verticals and categories ---
+const FulfillmentEnum = z.enum(['at_customer', 'point_to_point', 'at_provider', 'remote']);
+const TrackingEnum = z.enum(['none', 'en_route', 'full_trip']);
+
+export const CreateVerticalSchema = z.object({
+  code: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/),
+  name: TranslatableTextSchema,
+  default_fulfillment: FulfillmentEnum,
+  default_tracking: TrackingEnum,
+  config: z.record(z.unknown()).optional(),
+});
+export type CreateVerticalDto = z.infer<typeof CreateVerticalSchema>;
+export const UpdateVerticalSchema = CreateVerticalSchema.partial().omit({ code: true });
+export type UpdateVerticalDto = z.infer<typeof UpdateVerticalSchema>;
+
+export const CreateCategorySchema = z.object({
+  code: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/),
+  name: TranslatableTextSchema,
+  parent_id: z.string().uuid().optional(),
+  fulfillment: FulfillmentEnum.optional(),
+  tracking: TrackingEnum.optional(),
+  sort_order: z.number().int().default(0),
+});
+export type CreateCategoryDto = z.infer<typeof CreateCategorySchema>;
+export const UpdateCategorySchema = CreateCategorySchema.partial().omit({ code: true });
+export type UpdateCategoryDto = z.infer<typeof UpdateCategorySchema>;
+
 // Re-export shared building blocks so the OpenAPI registry can reference them.
 export { MoneySchema, TranslatableTextSchema };

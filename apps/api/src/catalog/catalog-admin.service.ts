@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { uuidv7 } from '@nxserve/domain';
-import { type CreateFieldDto, type UpdateFieldDto } from '@nxserve/contracts';
+import {
+  type CreateCategoryDto,
+  type CreateFieldDto,
+  type CreateVerticalDto,
+  type UpdateCategoryDto,
+  type UpdateFieldDto,
+  type UpdateVerticalDto,
+} from '@nxserve/contracts';
 import { DbService } from '../db/db.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { AppException } from '../common/app-exception.js';
@@ -140,6 +147,81 @@ export class CatalogAdminService {
       }
       await this.emit(client, tenantId, actor, fieldId, null, 'deleted');
       return { status: 'ok' };
+    });
+  }
+
+  async createVertical(tenantId: string, dto: CreateVerticalDto, actor: Actor): Promise<{ id: string; code: string }> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const id = uuidv7();
+      await client.query(
+        `INSERT INTO verticals (id, tenant_id, code, name, default_fulfillment, default_tracking, config)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb)`,
+        [id, tenantId, dto.code, j(dto.name), dto.default_fulfillment, dto.default_tracking, j(dto.config ?? {})],
+      );
+      await this.outbox.emit(client, { type: 'catalog.vertical_changed', tenantId, actor, data: { vertical_id: id, action: 'created' } });
+      return { id, code: dto.code };
+    });
+  }
+
+  async updateVertical(tenantId: string, id: string, dto: UpdateVerticalDto, actor: Actor): Promise<{ id: string }> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const cur = await client.query<{ name: Record<string, string>; default_fulfillment: string; default_tracking: string; config: unknown }>(
+        `SELECT name, default_fulfillment, default_tracking, config FROM verticals WHERE id = $1`,
+        [id],
+      );
+      const row = cur.rows[0];
+      if (!row) throw new AppException('not_found', { detail: 'Vertical not found' });
+      await client.query(
+        `UPDATE verticals SET name = $2::jsonb, default_fulfillment = $3, default_tracking = $4, config = $5::jsonb WHERE id = $1`,
+        [
+          id,
+          j(dto.name ?? row.name),
+          dto.default_fulfillment ?? row.default_fulfillment,
+          dto.default_tracking ?? row.default_tracking,
+          j(dto.config ?? row.config),
+        ],
+      );
+      await this.outbox.emit(client, { type: 'catalog.vertical_changed', tenantId, actor, data: { vertical_id: id, action: 'updated' } });
+      return { id };
+    });
+  }
+
+  async createCategory(tenantId: string, verticalId: string, dto: CreateCategoryDto, actor: Actor): Promise<{ id: string; code: string }> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const v = await client.query(`SELECT 1 FROM verticals WHERE id = $1`, [verticalId]);
+      if ((v.rowCount ?? 0) === 0) throw new AppException('not_found', { detail: 'Vertical not found' });
+      const id = uuidv7();
+      await client.query(
+        `INSERT INTO categories (id, tenant_id, vertical_id, parent_id, fulfillment, tracking, code, name, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)`,
+        [id, tenantId, verticalId, dto.parent_id ?? null, dto.fulfillment ?? null, dto.tracking ?? null, dto.code, j(dto.name), dto.sort_order],
+      );
+      await this.outbox.emit(client, { type: 'catalog.category_changed', tenantId, actor, data: { category_id: id, vertical_id: verticalId, action: 'created' } });
+      return { id, code: dto.code };
+    });
+  }
+
+  async updateCategory(tenantId: string, id: string, dto: UpdateCategoryDto, actor: Actor): Promise<{ id: string }> {
+    return this.db.withTenant(tenantId, async (client) => {
+      const cur = await client.query<{ name: Record<string, string>; parent_id: string | null; fulfillment: string | null; tracking: string | null; sort_order: number }>(
+        `SELECT name, parent_id, fulfillment, tracking, sort_order FROM categories WHERE id = $1`,
+        [id],
+      );
+      const row = cur.rows[0];
+      if (!row) throw new AppException('not_found', { detail: 'Category not found' });
+      await client.query(
+        `UPDATE categories SET name = $2::jsonb, parent_id = $3, fulfillment = $4, tracking = $5, sort_order = $6 WHERE id = $1`,
+        [
+          id,
+          j(dto.name ?? row.name),
+          dto.parent_id ?? row.parent_id,
+          dto.fulfillment ?? row.fulfillment,
+          dto.tracking ?? row.tracking,
+          dto.sort_order ?? row.sort_order,
+        ],
+      );
+      await this.outbox.emit(client, { type: 'catalog.category_changed', tenantId, actor, data: { category_id: id, action: 'updated' } });
+      return { id };
     });
   }
 
